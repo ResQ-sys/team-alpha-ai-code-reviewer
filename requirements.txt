@@ -1,0 +1,26 @@
+# Core agent orchestration
+langgraph>=0.2.0
+langchain-core>=0.3.0
+
+# LLM clients (pluggable — see utils/llm_client.py)
+anthropic>=0.34.0
+openai>=1.40.0
+
+# Static analysis
+semgrep>=1.78.0
+
+# RAG / retrieval
+sentence-transformers>=3.0.0
+faiss-cpu>=1.8.0
+scikit-learn>=1.4.0     # TF-IDF fallback if sentence-transformers/model download unavailable
+
+# Web / UI
+fastapi>=0.111.0
+uvicorn>=0.30.0
+streamlit>=1.37.0
+
+# Utilities
+pydantic>=2.7.0
+python-dotenv>=1.0.0
+rich>=13.7.0
+requests>=2.32.0

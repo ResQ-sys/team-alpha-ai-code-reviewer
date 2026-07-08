@@ -1,0 +1,18 @@
+*:Zone.Identifier
+Hackathon_Problem_Statement.pptx
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environment / secrets
+.env
+.venv/
+
+# Editor / agent tooling
+.claude/
+.agents/
+
+# Generated pipeline artifacts
+code_review_report.md
+code_review_report.json
