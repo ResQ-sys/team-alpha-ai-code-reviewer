@@ -84,9 +84,16 @@ if result:
     st.caption(f"{rag_badge}  •  Model: `{OLLAMA_MODEL}`  •  "
                f"Redis cache: {'on' if result.get('use_redis', True) else 'off'}")
 
+    cats = result.get("category_breakdown", {})
+    b1, b2, b3, b4 = st.columns(4)
+    b1.metric("Syntax errors", cats.get("syntax", 0))
+    b2.metric("Logical bugs", cats.get("logic", 0))
+    b3.metric("Security vulns", cats.get("security", 0))
+    b4.metric("Quality issues", cats.get("quality", 0))
+
     tabs = st.tabs([
         "Vulnerability Report", "Suggested Fixes", "Quality Issues",
-        "Human Approval", "Raw JSON", "Markdown Report",
+        "Human Approval", "Agent Trace", "Raw JSON", "Markdown Report",
     ])
 
     with tabs[0]:
@@ -136,6 +143,27 @@ if result:
             st.write(f"✅ {item['file']}:{item['line']} [{item['severity']}]")
 
     with tabs[4]:
+        st.subheader("Per-agent trace (observability)")
+        trace = result.get("trace", [])
+        summary = result.get("final_report_json", {}).get("trace_summary", {})
+        if summary:
+            t1, t2, t3 = st.columns(3)
+            t1.metric("Nodes", summary.get("nodes", 0))
+            t2.metric("Total time (ms)", summary.get("total_ms", 0))
+            t3.metric("Errors", summary.get("errors", 0))
+        if trace:
+            st.dataframe(
+                [{
+                    "#": s["seq"], "agent": s["node"],
+                    "duration_ms": s["duration_ms"], "status": s["status"],
+                    "produced": ", ".join(f"{k}={v}" for k, v in s.get("produced", {}).items()),
+                } for s in trace],
+                use_container_width=True, hide_index=True,
+            )
+        else:
+            st.info("No trace recorded.")
+
+    with tabs[5]:
         st.json(result.get("final_report_json", {}))
         st.download_button(
             "Download JSON report",
@@ -143,7 +171,7 @@ if result:
             file_name="code_review_report.json",
         )
 
-    with tabs[5]:
+    with tabs[6]:
         st.markdown(result.get("final_report_md", ""))
         st.download_button(
             "Download Markdown report",

@@ -31,6 +31,11 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:1.5b")
 # ---------------------------------------------------------------------------
 USE_RAG = os.getenv("USE_RAG", "true").lower() in {"1", "true", "yes", "on"}
 
+# Fold CWE-labeled samples distilled from the named vulnerability datasets
+# (Devign / Big-Vul / Juliet / DiverseVul / ...) into the RAG corpus so
+# retrieval is genuinely dataset-backed, not only the hand-written KB.
+USE_DATASET_RAG = os.getenv("USE_DATASET_RAG", "true").lower() in {"1", "true", "yes", "on"}
+
 # ---------------------------------------------------------------------------
 # Redis caching layer.
 # Caches LLM completions (and can back other caches) so repeat runs are fast

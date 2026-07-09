@@ -44,7 +44,11 @@ def _python_graph(source: str) -> Dict:
     try:
         tree = ast.parse(source)
     except SyntaxError as e:
-        return {"error": f"SyntaxError: {e}", "functions": [], "classes": [], "calls": [], "imports": []}
+        return {
+            "error": f"SyntaxError: {e}",
+            "syntax_error": {"message": e.msg, "line": e.lineno or 0},
+            "functions": [], "classes": [], "calls": [], "imports": [],
+        }
 
     functions, classes, calls, imports = [], [], [], []
 

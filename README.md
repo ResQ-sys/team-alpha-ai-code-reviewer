@@ -116,8 +116,22 @@ you can compare grounded vs. ungrounded generation from the UI.
 
 **Tests (no API key required — LLM calls are mocked):**
 ```bash
-python -m tests.test_pipeline
+python -m tests.test_pipeline      # end-to-end integration test
+python -m unittest tests.test_unit # unit tests: categorization, dedup, scoring, verifier, tracing, dataset RAG
 ```
+
+**Findings are surfaced in distinct categories** — *syntax errors* (promoted from
+the parser), *logical bugs*, *security vulnerabilities*, and *quality issues* —
+each shown separately in the report and dashboard (`category_breakdown`).
+
+**Observability:** every agent run is traced (name / duration / status / output)
+into `state["trace"]`, surfaced in the report JSON+Markdown and an "Agent Trace"
+tab in Streamlit. `utils/tracing.py:emit_span` is the hook for LangSmith/Phoenix.
+
+**Dataset-backed RAG:** the retrieval corpus folds in CWE-labeled samples
+distilled from the named datasets (Devign, Big-Vul, Juliet, DiverseVul, …) via
+`rag/dataset_loader.py`, so grounding isn't limited to the hand-written KB
+(toggle with `USE_DATASET_RAG`).
 
 **Optional (offline track): LoRA fine-tuning & rating** — a *separate, offline*
 pipeline to train a Code-LLM towards secure-coding recommendations and rate it

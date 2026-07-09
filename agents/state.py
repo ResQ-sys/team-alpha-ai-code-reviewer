@@ -21,8 +21,9 @@ class FileFinding(TypedDict, total=False):
     cwe: List[str]
     owasp: List[str]
     severity: str          # INFO | WARNING | ERROR | CRITICAL
+    category: str          # syntax | logic | security | quality
     message: str
-    source: str            # "semgrep" | "llm" | "heuristic"
+    source: str            # "semgrep" | "llm" | "parser" | "heuristic"
     code_snippet: str
 
 
@@ -50,6 +51,7 @@ class ReviewState(TypedDict, total=False):
 
     # ---- static & semantic analysis ----
     semgrep_findings: List[FileFinding]
+    syntax_findings: List[FileFinding]    # parser syntax errors as first-class findings
     code_graph_summary: Dict[str, Any]   # lightweight call/dependency graph stats
 
     # ---- code understanding (Code LLM) ----
@@ -59,6 +61,7 @@ class ReviewState(TypedDict, total=False):
     # ---- merged vulnerability detection ----
     merged_findings: List[FileFinding]
     quality_issues: List[FileFinding]
+    category_breakdown: Dict[str, int]    # counts per category (syntax/logic/security/quality)
 
     # ---- secure coding RAG ----
     retrieved_guidance: Dict[str, List[str]]   # finding_ref -> guidance snippets
@@ -81,6 +84,9 @@ class ReviewState(TypedDict, total=False):
     quality_score: float
     final_report_md: str
     final_report_json: Dict[str, Any]
+
+    # ---- observability ----
+    trace: List[Dict[str, Any]]           # per-node spans (name/seq/duration/status)
 
     # ---- misc ----
     errors: List[str]

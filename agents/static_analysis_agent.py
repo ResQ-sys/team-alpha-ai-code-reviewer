@@ -21,9 +21,29 @@ def static_analysis_node(state: ReviewState) -> ReviewState:
     errors.extend(semgrep_errors)
 
     file_graphs = []
+    syntax_findings = []
     for path, content in state.get("file_contents", {}).items():
         lang = state.get("languages", {}).get(path, "unknown")
-        file_graphs.append(build_code_graph(path, content, lang))
+        graph = build_code_graph(path, content, lang)
+        file_graphs.append(graph)
+
+        # Promote parser syntax errors to first-class CRITICAL findings so they
+        # are surfaced in the report as a distinct category, not just metadata.
+        syn = graph.get("syntax_error")
+        if syn:
+            syntax_findings.append({
+                "file": path,
+                "line": syn.get("line", 0),
+                "end_line": syn.get("line", 0),
+                "rule_id": "syntax-error",
+                "cwe": [],
+                "owasp": [],
+                "severity": "CRITICAL",
+                "message": f"Syntax error — file does not parse: {syn.get('message', '')}",
+                "source": "parser",
+                "category": "syntax",
+                "code_snippet": "",
+            })
 
     graph_summary = summarize_repo_graph(file_graphs)
     graph_summary["per_file"] = {g["file"]: g for g in file_graphs}
@@ -31,6 +51,7 @@ def static_analysis_node(state: ReviewState) -> ReviewState:
     return {
         **state,
         "semgrep_findings": findings,
+        "syntax_findings": syntax_findings,
         "code_graph_summary": graph_summary,
         "errors": errors,
     }

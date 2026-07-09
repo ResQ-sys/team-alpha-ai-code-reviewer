@@ -15,13 +15,25 @@ from __future__ import annotations
 import json
 from typing import Dict, List
 
-from config import EMBEDDING_MODEL_NAME, KNOWLEDGE_BASE_PATH, TOP_K_RETRIEVAL
+from config import EMBEDDING_MODEL_NAME, KNOWLEDGE_BASE_PATH, TOP_K_RETRIEVAL, USE_DATASET_RAG
+from rag.dataset_loader import load_dataset_docs
 
 
 class SecureCodingKB:
-    def __init__(self, kb_path: str = KNOWLEDGE_BASE_PATH):
+    def __init__(self, kb_path: str = KNOWLEDGE_BASE_PATH, include_datasets: bool = USE_DATASET_RAG):
         with open(kb_path, "r", encoding="utf-8") as f:
             self.docs: List[Dict] = json.load(f)
+        for d in self.docs:
+            d.setdefault("source", "secure_coding_docs")
+
+        # Genuinely dataset-backed retrieval: fold in CWE-labeled samples
+        # distilled from Devign / Big-Vul / Juliet / DiverseVul / etc.
+        self.dataset_doc_count = 0
+        if include_datasets:
+            dataset_docs = load_dataset_docs()
+            self.docs.extend(dataset_docs)
+            self.dataset_doc_count = len(dataset_docs)
+
         self.texts = [f"{d['title']}. {d['text']}" for d in self.docs]
         self.backend = None
         self._build_index()

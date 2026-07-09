@@ -20,6 +20,13 @@ from typing import Dict, List
 
 from agents.state import ReviewState
 from config import SCORE_WEIGHTS
+from utils.tracing import summarize_trace
+
+_CATEGORY_SECTIONS = [
+    ("syntax", "Syntax Errors"),
+    ("logic", "Logical Bugs"),
+    ("security", "Security Vulnerabilities"),
+]
 
 
 def _compute_quality_score(findings: List[Dict], total_loc: int) -> float:
@@ -62,15 +69,29 @@ def _render_markdown(state: ReviewState, quality_score: float, severity_counts: 
         lines.append(f"- **{sev}**: {severity_counts.get(sev, 0)}")
     lines.append("")
 
-    lines.append("## Bug Detection & Security Vulnerability Report")
-    if not state.get("merged_findings"):
-        lines.append("No security or bug findings detected.\n")
-    for f in state.get("merged_findings", []):
-        cwe = ", ".join(f.get("cwe", [])) or "n/a"
-        lines.append(f"### [{f.get('severity')}] {f.get('file')}:{f.get('line')} — `{f.get('rule_id')}`")
-        lines.append(f"- **CWE:** {cwe}")
-        lines.append(f"- **Message:** {f.get('message')}")
-        lines.append("")
+    # Distinct, surfaced categories: syntax errors, logical bugs, security vulns.
+    cats = state.get("category_breakdown", {})
+    lines.append("## Findings by Category")
+    lines.append(f"- **Syntax errors:** {cats.get('syntax', 0)}")
+    lines.append(f"- **Logical bugs:** {cats.get('logic', 0)}")
+    lines.append(f"- **Security vulnerabilities:** {cats.get('security', 0)}")
+    lines.append(f"- **Quality issues:** {cats.get('quality', 0)}")
+    lines.append("")
+
+    merged = state.get("merged_findings", [])
+    if not merged:
+        lines.append("No syntax, bug, or security findings detected.\n")
+    for cat_key, cat_title in _CATEGORY_SECTIONS:
+        cat_findings = [f for f in merged if f.get("category") == cat_key]
+        if not cat_findings:
+            continue
+        lines.append(f"## {cat_title}")
+        for f in cat_findings:
+            cwe = ", ".join(f.get("cwe", [])) or "n/a"
+            lines.append(f"### [{f.get('severity')}] {f.get('file')}:{f.get('line')} — `{f.get('rule_id')}`")
+            lines.append(f"- **CWE:** {cwe}")
+            lines.append(f"- **Message:** {f.get('message')}")
+            lines.append("")
 
     lines.append("## Code Quality Issues")
     if not state.get("quality_issues"):
@@ -109,6 +130,26 @@ def _render_markdown(state: ReviewState, quality_score: float, severity_counts: 
     for item in state.get("approved_fixes", []):
         lines.append(f"  - APPROVED: {item['file']}:{item['line']} [{item['severity']}]")
 
+    # Observability: per-agent trace.
+    trace = state.get("trace", [])
+    if trace:
+        summary = summarize_trace(trace)
+        lines.append("\n## Agent Trace (Observability)")
+        lines.append(f"- **Nodes executed:** {summary['nodes']}  |  "
+                     f"**Total:** {summary['total_ms']} ms  |  "
+                     f"**Errors:** {summary['errors']}")
+        if summary.get("slowest"):
+            lines.append(f"- **Slowest:** `{summary['slowest']['node']}` "
+                         f"({summary['slowest']['duration_ms']} ms)")
+        lines.append("")
+        lines.append("| # | Agent | Duration (ms) | Status | Produced |")
+        lines.append("|---|-------|---------------|--------|----------|")
+        for s in trace:
+            produced = ", ".join(f"{k}={v}" for k, v in s.get("produced", {}).items()) or "—"
+            lines.append(f"| {s['seq']} | {s['node']} | {s['duration_ms']} | "
+                         f"{s['status']} | {produced} |")
+        lines.append("")
+
     if state.get("errors"):
         lines.append("\n## Pipeline Notices")
         for e in state["errors"]:
@@ -130,6 +171,7 @@ def report_node(state: ReviewState) -> ReviewState:
         "quality_score": quality_score,
         "confidence_score": state.get("confidence_score", 0),
         "severity_breakdown": severity_counts,
+        "category_breakdown": state.get("category_breakdown", {}),
         "bug_and_vulnerability_findings": state.get("merged_findings", []),
         "quality_issues": state.get("quality_issues", []),
         "suggested_fixes": state.get("suggested_fixes", []),
@@ -140,6 +182,8 @@ def report_node(state: ReviewState) -> ReviewState:
             "pending": state.get("requires_approval", []),
             "rejected": state.get("rejected_fixes", []),
         },
+        "trace": state.get("trace", []),
+        "trace_summary": summarize_trace(state.get("trace", [])),
         "notices": state.get("errors", []),
     }
 

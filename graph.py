@@ -19,20 +19,23 @@ from agents.static_analysis_agent import static_analysis_node
 from agents.verifier_agent import verifier_node
 from agents.review_generation_agent import review_generation_node
 from agents.vulnerability_agent import vulnerability_node
+from utils.tracing import traced
 
 
 def build_graph():
     graph = StateGraph(ReviewState)
 
-    graph.add_node("ingestion", ingestion_node)
-    graph.add_node("static_analysis", static_analysis_node)
-    graph.add_node("llm_review", llm_review_node)
-    graph.add_node("vulnerability", vulnerability_node)
-    graph.add_node("rag", rag_node)
-    graph.add_node("review_generation", review_generation_node)
-    graph.add_node("verifier", verifier_node)
-    graph.add_node("approval", approval_node)
-    graph.add_node("report", report_node)
+    # Every node is wrapped with `traced(...)` so each run records a span
+    # (timing/status/output) into state["trace"] for observability.
+    graph.add_node("ingestion", traced("ingestion", ingestion_node))
+    graph.add_node("static_analysis", traced("static_analysis", static_analysis_node))
+    graph.add_node("llm_review", traced("llm_review", llm_review_node))
+    graph.add_node("vulnerability", traced("vulnerability", vulnerability_node))
+    graph.add_node("rag", traced("rag", rag_node))
+    graph.add_node("review_generation", traced("review_generation", review_generation_node))
+    graph.add_node("verifier", traced("verifier", verifier_node))
+    graph.add_node("approval", traced("approval", approval_node))
+    graph.add_node("report", traced("report", report_node))
 
     graph.set_entry_point("ingestion")
     graph.add_edge("ingestion", "static_analysis")
