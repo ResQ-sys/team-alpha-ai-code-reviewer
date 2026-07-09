@@ -74,6 +74,9 @@ def main():
         for e in result["errors"]:
             print(f"  - {e}")
 
+    from utils.tracing import shutdown_tracing
+    shutdown_tracing()  # flush any exported spans (otel/langsmith)
+
 
 if __name__ == "__main__":
     main()

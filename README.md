@@ -13,24 +13,42 @@ human-in-the-loop approval step.
 | Problem statement item | Where it lives here |
 |---|---|
 | Multi-Agent AI Workflow | `graph.py` (LangGraph `StateGraph`), 9 nodes in `agents/` |
-| Code Large Language Models (Code Llama, DeepSeek-Coder, StarCoder, Qwen2.5-Coder) | `utils/llm_client.py` — pluggable provider (`anthropic` / `openai` / `local_hf`); swap in any locally-served Code-LLM via the `local_hf` branch |
-| Retrieval-Augmented Generation (Code RAG) | `rag/knowledge_base.py` + `rag/secure_coding_docs.json`, used by `agents/rag_agent.py` |
+| Code Large Language Models (Code Llama, DeepSeek-Coder, StarCoder, Qwen2.5-Coder) | `utils/llm_client.py` — **runs Qwen2.5-Coder locally via Ollama by default**; also pluggable to `anthropic` / `openai` / `local_hf` |
+| Retrieval-Augmented Generation (Code RAG) | `rag/knowledge_base.py` + `agents/rag_agent.py`, over `rag/secure_coding_docs.json` **plus distilled dataset samples** (`rag/dataset_loader.py`) |
 | Static & Semantic Code Analysis | `utils/semgrep_runner.py` (Semgrep, OWASP/CWE rulesets, with an offline fallback ruleset in `rules/local_security_rules.yaml`) |
-| Graph Neural Networks (Code Graph Representation) | `utils/code_parser.py` — AST/regex-derived function/class/call graph fed to the LLM as structural context (documented swap-in point for a trained GNN) |
-| Vulnerability Detection Models | Semgrep + LLM semantic findings merged/deduped in `agents/vulnerability_agent.py` |
+| Graph Neural Networks (Code Graph Representation) | **Stand-in, not an actual GNN:** `utils/code_parser.py` builds an AST/regex function/class/call graph fed to the LLM as structural context. A real GNN is a documented swap-in, not implemented. |
+| Vulnerability Detection Models | Semgrep + LLM semantic findings merged/deduped in `agents/vulnerability_agent.py` (no separately-trained detector) |
 | Explainable AI | `agents/review_generation_agent.py` — every finding gets a plain-language explanation + RAG citations |
 | Self-Reflection & Verifier Agents | `agents/verifier_agent.py` — syntax check, no-op check, semgrep regression re-scan |
 | Human-in-the-Loop Approval | `agents/approval_agent.py`, CLI prompt in `main.py --interactive`, interactive tab in `app.py` |
-| GitHub API / GitLab API / Docker | Extension points noted in §5 below (not required for local repo review) |
-| PyTorch / TensorFlow / Transformers | Used inside whichever local Code-LLM you plug into `local_hf` |
-| Tree-sitter / Semgrep / CodeQL | Semgrep wired in; Tree-sitter/CodeQL are documented swap-ins for `utils/code_parser.py` |
-| Streamlit / FastAPI / Next.js | `app.py` (Streamlit dashboard) |
-| DeepEval / Phoenix / MLflow | Extension point — pipeline emits structured JSON (`final_report_json`) that DeepEval/Ragas or Phoenix tracing can consume |
+| GitHub API / GitLab API / Docker | **Not implemented** — extension points noted in §5 (not required for local repo review) |
+| PyTorch / TensorFlow / Transformers | Used by the optional LoRA track (`finetune/`) and inside a local Code-LLM |
+| Tree-sitter / Semgrep / CodeQL | Semgrep wired in; Tree-sitter/CodeQL are **documented swap-ins**, not implemented |
+| DeepEval / Phoenix / MLflow | `utils/tracing.py` exports per-agent spans via **OpenTelemetry** (OTLP → Phoenix/Jaeger) or **LangSmith** (`TRACING_BACKEND`). DeepEval/Ragas can consume `final_report_json`. |
+| Streamlit / FastAPI / Next.js | `app.py` (Streamlit dashboard). FastAPI/Next.js not implemented. |
 
 **Final Output artifacts** (all in `agents/report_agent.py`, written by `main.py`):
 Code Review Report, Bug Detection Summary, Security Vulnerability Report, Code
 Quality Score, Suggested Code Fixes, Secure Coding Recommendations,
 Explainability Report, Confidence Score, Human Approval Report.
+
+### Scope & honest limitations
+
+This is a working reference implementation, not a production system. To be clear
+about what is real vs. a stand-in:
+
+- **No trained GNN / vulnerability model.** Structural context is an AST/regex
+  code graph; detection is Semgrep + LLM. The named datasets (Devign, Big-Vul, …)
+  are **not** used to train a model at runtime.
+- **Dataset-backed RAG uses distilled samples.** The corpus folds in CWE-labeled
+  samples derived from those datasets (`rag/datasets/`), not the full multi-GB
+  datasets. An optional HuggingFace loader (`rag/dataset_loader.load_hf_dataset_docs`)
+  can pull the real datasets but is off by default.
+- **Tracing is span-level.** OpenTelemetry/LangSmith export is real but records
+  per-agent spans (timing/status/output), not deep token-level LLM tracing.
+- **LoRA fine-tuning is an optional offline track** (`finetune/`), decoupled from
+  the app; a full run needs a GPU.
+- **No GitHub/GitLab/Docker/FastAPI integration** — local-repo review only.
 
 ## 2. Pipeline architecture
 
@@ -126,12 +144,16 @@ each shown separately in the report and dashboard (`category_breakdown`).
 
 **Observability:** every agent run is traced (name / duration / status / output)
 into `state["trace"]`, surfaced in the report JSON+Markdown and an "Agent Trace"
-tab in Streamlit. `utils/tracing.py:emit_span` is the hook for LangSmith/Phoenix.
+tab in Streamlit. Set `TRACING_BACKEND=otel` (OTLP → Phoenix/Jaeger via
+`OTEL_EXPORTER_OTLP_ENDPOINT`), `langsmith`, or `console` to export spans to a
+real external tracer; default is in-process only.
 
 **Dataset-backed RAG:** the retrieval corpus folds in CWE-labeled samples
 distilled from the named datasets (Devign, Big-Vul, Juliet, DiverseVul, …) via
-`rag/dataset_loader.py`, so grounding isn't limited to the hand-written KB
-(toggle with `USE_DATASET_RAG`).
+`rag/dataset_loader.py`. To back it with the **real** datasets, run
+`python rag/fetch_datasets.py` — it streams vulnerable-labeled functions from
+HuggingFace (default: Devign/CodeXGLUE) into `rag/datasets/hf_cache.jsonl`, which
+RAG then includes automatically. Toggle the whole feature with `USE_DATASET_RAG`.
 
 **Optional (offline track): LoRA fine-tuning & rating** — a *separate, offline*
 pipeline to train a Code-LLM towards secure-coding recommendations and rate it
@@ -156,16 +178,17 @@ classifier/GNN instead of (or alongside) prompting a Code-LLM:
 | Big-Vul (MSR 2020) | Large vulnerability dataset with CVEs | https://github.com/ZeoVan/MSR_20_Code_vulnerability_CSV_Dataset |
 | CodeXGLUE | Code intelligence benchmark | https://github.com/microsoft/CodeXGLUE |
 | CodeSearchNet | Code search / semantic understanding | https://github.com/github/CodeSearchNet |
-| Juliet Test Suite (NIST) | CWE security weakness test cases | https://samate.nist.gov/SRD/testsuite.php |
+| Juliet Test Suite (NIST) | CWE security weakness test cases | https://samate.nist.gov/SARD/ (NIST SARD — the canonical distribution; Juliet has no official GitHub repo, only community mirrors) |
 | DiverseVul | Large-scale vulnerability detection | https://github.com/wagner-group/diversevul |
 | OWASP Benchmark | Security-testing-tool benchmark | https://owasp.org/www-project-benchmark/ |
 | ManySStuBs4J | Real Java bug-fix dataset | https://github.com/mast-group/mineSStuBs |
 | SAP Project-KB | Java bug-fix benchmark | https://github.com/SAP/project-kb |
 
-This demo does not train a model on these datasets (out of scope for a
-hackathon timeline); it uses them as reference for the offline ruleset and
-as suggested benchmarks in the deck for anyone extending the vulnerability
-classifier into a trained GNN/transformer model.
+These datasets are used two ways here: (1) **RAG retrieval** — distilled
+CWE-labeled samples are bundled, and `rag/fetch_datasets.py` streams real rows
+(e.g. Devign/CodeXGLUE) into the corpus on demand; (2) as **reference benchmarks**
+for anyone extending this into a trained GNN/transformer detector or the optional
+LoRA track (`finetune/`). The runtime pipeline does **not** train a model on them.
 
 ## 6. Extension points
 

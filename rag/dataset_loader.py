@@ -19,12 +19,15 @@ so it can be indexed alongside `secure_coding_docs.json` transparently.
 """
 from __future__ import annotations
 
+import glob
 import json
 import os
 from typing import Dict, List
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SAMPLES_PATH = os.path.join(HERE, "datasets", "vuln_samples.jsonl")
+DATASETS_DIR = os.path.join(HERE, "datasets")
+SAMPLES_PATH = os.path.join(DATASETS_DIR, "vuln_samples.jsonl")
+HF_CACHE_PATH = os.path.join(DATASETS_DIR, "hf_cache.jsonl")
 
 
 def _row_to_doc(row: Dict) -> Dict:
@@ -46,20 +49,28 @@ def _row_to_doc(row: Dict) -> Dict:
     }
 
 
-def load_sample_docs(path: str = SAMPLES_PATH) -> List[Dict]:
-    """Load the bundled offline dataset samples as RAG docs."""
-    if not os.path.exists(path):
-        return []
-    docs = []
+def _read_rows(path: str) -> List[Dict]:
+    rows = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
             try:
-                docs.append(_row_to_doc(json.loads(line)))
+                rows.append(json.loads(line))
             except json.JSONDecodeError:
                 continue
+    return rows
+
+
+def load_sample_docs(datasets_dir: str = DATASETS_DIR) -> List[Dict]:
+    """Load every bundled/cached dataset file (`rag/datasets/*.jsonl`) as RAG
+    docs. This automatically includes anything written by `fetch_datasets.py`
+    (e.g. `hf_cache.jsonl` streamed from real HuggingFace datasets)."""
+    docs = []
+    for path in sorted(glob.glob(os.path.join(datasets_dir, "*.jsonl"))):
+        for row in _read_rows(path):
+            docs.append(_row_to_doc(row))
     return docs
 
 

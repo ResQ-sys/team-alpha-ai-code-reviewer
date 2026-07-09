@@ -42,6 +42,16 @@ USE_DATASET_RAG = os.getenv("USE_DATASET_RAG", "true").lower() in {"1", "true", 
 # and cheap. Falls back to an embedded `redislite` server, then to a no-op,
 # if a standalone Redis isn't reachable — the pipeline never hard-depends on it.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Agent tracing / observability backend.
+#   none      — in-process spans only (default; recorded in state["trace"])
+#   console   — also print each span
+#   otel      — export spans via OpenTelemetry (OTLP if OTEL_EXPORTER_OTLP_ENDPOINT
+#               is set, e.g. Phoenix/Jaeger; else console span exporter)
+#   langsmith — export a run per node to LangSmith (needs LANGSMITH_API_KEY)
+# ---------------------------------------------------------------------------
+TRACING_BACKEND = os.getenv("TRACING_BACKEND", "none").lower()
+
 REDIS_ENABLED = os.getenv("REDIS_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 REDIS_TTL = int(os.getenv("REDIS_TTL", "604800"))          # 7 days
