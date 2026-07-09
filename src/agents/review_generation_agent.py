@@ -13,9 +13,12 @@ technique.
 from __future__ import annotations
 
 import json
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
 from agents.state import ReviewState, SuggestedFix
+from config import MAX_LLM_WORKERS
 from utils.llm_client import LLMClient
 
 SYSTEM_PROMPT = """You are an AI pair-programmer generating a code review \
@@ -25,10 +28,13 @@ targeted — do not rewrite unrelated code. Explain your reasoning in plain \
 language a mid-level developer can follow."""
 
 
-def _build_prompt(finding, code_snippet: str, guidance: List[str]) -> str:
+def _build_prompt(finding, code_snippet: str, guidance: List[str], rel_file: str) -> str:
+    # Use the repo-relative path (not the absolute temp-clone path) so the
+    # prompt — and therefore the LLM-response cache key — is stable across fresh
+    # clones of the same repo.
     guidance_text = "\n".join(f"- {g}" for g in guidance) or "(no specific guidance retrieved; use general secure-coding best practice)"
     return f"""Finding:
-File: {finding['file']}
+File: {rel_file}
 Line: {finding.get('line')}
 Severity: {finding.get('severity')}
 Rule: {finding.get('rule_id')}
@@ -62,6 +68,22 @@ def _get_snippet(state: ReviewState, finding) -> str:
     return "\n".join(lines[start:end])
 
 
+def _generate_one(client: LLMClient, finding, snippet: str, guidance: List[str],
+                  rel_file: str) -> dict:
+    """Generate a review comment + fix for one finding. Never raises."""
+    ref = f"{finding['file']}:{finding.get('line', 0)}:{finding.get('rule_id', '')}"
+    try:
+        result = client.complete_json(
+            SYSTEM_PROMPT, _build_prompt(finding, snippet, guidance, rel_file),
+            max_tokens=1200)
+    except Exception as e:  # noqa: BLE001
+        return {"ref": ref, "error": f"Review generation failed for {ref}: {e}"}
+    if result.get("_parse_error"):
+        return {"ref": ref, "error": f"Review generation returned non-JSON for {ref}"}
+    return {"ref": ref, "finding": finding, "snippet": snippet,
+            "guidance": guidance, "result": result}
+
+
 def review_generation_node(state: ReviewState) -> ReviewState:
     client = LLMClient()
     errors = list(state.get("errors", []))
@@ -70,20 +92,37 @@ def review_generation_node(state: ReviewState) -> ReviewState:
     suggested_fixes: List[SuggestedFix] = []
     review_comments: List[dict] = []
 
-    for finding in state.get("merged_findings", []):
-        ref = f"{finding['file']}:{finding.get('line', 0)}:{finding.get('rule_id', '')}"
-        snippet = _get_snippet(state, finding)
-        guidance = guidance_map.get(ref, [])
+    findings = state.get("merged_findings", [])
+    workers = max(1, min(MAX_LLM_WORKERS, len(findings) or 1))
+    repo_path = state.get("repo_path", "")
 
+    def _rel(p: str) -> str:
         try:
-            result = client.complete_json(SYSTEM_PROMPT, _build_prompt(finding, snippet, guidance), max_tokens=1200)
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"Review generation failed for {ref}: {e}")
-            continue
+            return os.path.relpath(p, repo_path) if repo_path else p
+        except ValueError:
+            return p
 
-        if result.get("_parse_error"):
-            errors.append(f"Review generation returned non-JSON for {ref}")
+    # One independent LLM call per finding — fan them out across the pool.
+    outcomes = []
+    if findings:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = []
+            for finding in findings:
+                ref = f"{finding['file']}:{finding.get('line', 0)}:{finding.get('rule_id', '')}"
+                futures.append(pool.submit(
+                    _generate_one, client, finding,
+                    _get_snippet(state, finding), guidance_map.get(ref, []),
+                    _rel(finding.get("file", ""))))
+            for fut in as_completed(futures):
+                outcomes.append(fut.result())
+
+    # Deterministic ordering regardless of thread completion timing.
+    for out in sorted(outcomes, key=lambda o: o["ref"]):
+        if out.get("error"):
+            errors.append(out["error"])
             continue
+        finding, snippet, guidance = out["finding"], out["snippet"], out["guidance"]
+        result, ref = out["result"], out["ref"]
 
         review_comments.append({
             "finding_ref": ref,

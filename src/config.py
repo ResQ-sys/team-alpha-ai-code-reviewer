@@ -11,9 +11,18 @@ load_dotenv()
 # a local HF/vLLM endpoint. For the hackathon demo we default to a hosted
 # API (Anthropic or OpenAI) since that requires no GPU / model download.
 # ---------------------------------------------------------------------------
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")   # ollama | anthropic | openai | local_hf
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")   # ollama | anthropic | openai | gemini | grok | local_hf
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+# Grok (xAI) — OpenAI-compatible API. Model ids evolve (grok-4, grok-3, ...),
+# so the UI lets a reviewer pick from the models their key can actually use.
+GROK_MODEL = os.getenv("GROK_MODEL", "grok-4")
+XAI_BASE_URL = os.getenv("XAI_BASE_URL", "https://api.x.ai/v1")
+# Gemini model ids are retired periodically (a stale id returns 404 "no longer
+# available"). The Streamlit sidebar lets a reviewer pick from the models their
+# key can actually use; this is only the fallback default.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 LOCAL_HF_ENDPOINT = os.getenv("LOCAL_HF_ENDPOINT", "http://localhost:8001/generate")
 LOCAL_HF_MODEL_NAME = os.getenv("LOCAL_HF_MODEL_NAME", "deepseek-ai/deepseek-coder-6.7b-instruct")
 
@@ -58,6 +67,16 @@ REDIS_TTL = int(os.getenv("REDIS_TTL", "604800"))          # 7 days
 REDIS_KEY_PREFIX = os.getenv("REDIS_KEY_PREFIX", "aicr")
 REDIS_LITE_PATH = os.getenv("REDIS_LITE_PATH", "/tmp/aicr_redis.db")
 
+# ---------------------------------------------------------------------------
+# LLM concurrency.
+# The LLM review + fix-generation nodes make one model call per file / per
+# finding. Those calls are independent and I/O-bound (HTTP to Ollama / a hosted
+# API), so we fan them out across a small thread pool instead of running them
+# one at a time. Tune down to 1 to force sequential behaviour (e.g. a tiny
+# local Ollama that serializes requests anyway); tune up for hosted providers.
+# ---------------------------------------------------------------------------
+MAX_LLM_WORKERS = int(os.getenv("MAX_LLM_WORKERS", "4"))
+
 # Static analysis
 SEMGREP_RULESETS = [
     "p/security-audit",
@@ -79,6 +98,13 @@ SCORE_WEIGHTS = {
     "WARNING": 3,
     "INFO": 1,
 }
+
+# Quality score curve: score = 100 * exp(-(penalty/LOC) / SCORE_DECAY), floored
+# at SCORE_FLOOR. Larger SCORE_DECAY = more lenient (a vulnerable repo scores
+# higher). Tuned so a deliberately-insecure app lands in a low-but-nonzero band
+# instead of a flat 0. Override via env to taste.
+SCORE_DECAY = float(os.getenv("SCORE_DECAY", "0.2"))
+SCORE_FLOOR = float(os.getenv("SCORE_FLOOR", "5"))
 
 # RAG
 KNOWLEDGE_BASE_PATH = os.path.join(os.path.dirname(__file__), "rag", "secure_coding_docs.json")

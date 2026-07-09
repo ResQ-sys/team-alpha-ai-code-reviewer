@@ -2,15 +2,19 @@
 CLI entrypoint for the AI Software Code Reviewer & Secure Development Agent.
 
 Usage:
-    python main.py --repo ./sample_repo
-    python main.py --repo ./sample_repo --interactive
-    python main.py --repo ./sample_repo --json-out report.json --md-out report.md
+    python src/main.py --repo ./sample_repo
+    python src/main.py --repo ./sample_repo --interactive
+    python src/main.py --repo ./sample_repo --json-out report.json --md-out report.md
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import sys
+
+# Ensure src/ is importable when run as `python src/main.py` from the repo root.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from agents.approval_agent import run_interactive_cli_approval
 from agents.report_agent import report_node

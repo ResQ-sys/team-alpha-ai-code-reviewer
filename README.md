@@ -10,6 +10,12 @@ human-in-the-loop approval step.
 
 ## 1. Mapping to the problem statement
 
+> **Project layout:** all Python source lives under **`src/`** (`src/app.py`,
+> `src/main.py`, `src/graph.py`, `src/config.py`, and the `agents/`, `utils/`,
+> `rag/`, `rules/`, `tests/`, `finetune/` packages). Paths in the table below are
+> relative to `src/`. Build/config files (`Dockerfile`, `docker-compose.yml`,
+> `requirements.txt`), `docs/`, and `sample_repo/` stay at the repo root.
+
 | Problem statement item | Where it lives here |
 |---|---|
 | Multi-Agent AI Workflow | `graph.py` (LangGraph `StateGraph`), 9 nodes in `agents/` |
@@ -116,26 +122,66 @@ hashing, insecure deserialization, command injection, `eval`, bare excepts).
 
 **CLI:**
 ```bash
-python main.py --repo ./sample_repo
-python main.py --repo ./sample_repo --interactive   # prompts for human approval
-python main.py --repo ./sample_repo --no-rag        # ungrounded (RAG off) baseline
-python main.py --repo ./sample_repo --no-redis      # disable the LLM cache
+python src/main.py --repo ./sample_repo
+python src/main.py --repo ./sample_repo --interactive   # prompts for human approval
+python src/main.py --repo ./sample_repo --no-rag        # ungrounded (RAG off) baseline
+python src/main.py --repo ./sample_repo --no-redis      # disable the LLM cache
 ```
 Writes `code_review_report.md` and `code_review_report.json`.
 
 **Dashboard:**
 ```bash
-streamlit run app.py
+streamlit run src/app.py
 ```
 Enter a repo path, run the pipeline, inspect findings/fixes across tabs, and
 approve/reject pending high-risk fixes interactively. The sidebar has toggles
 for **secure-coding RAG** and the **Redis cache** (with a live status badge), so
 you can compare grounded vs. ungrounded generation from the UI.
 
+**Docker (runtime model input via env vars):**
+```bash
+docker build -t ai-code-reviewer .
+
+# Or with Compose
+docker compose up --build
+
+# Example: hosted provider
+docker run --rm -p 8501:8501 \
+  -e LLM_PROVIDER=openai \
+  -e OPENAI_API_KEY=your-key \
+  -e OPENAI_MODEL=gpt-4o-mini \
+  ai-code-reviewer
+
+# Example: Ollama running outside the container
+docker run --rm -p 8501:8501 \
+  --add-host=host.docker.internal:host-gateway \
+  -e LLM_PROVIDER=ollama \
+  -e OLLAMA_ENDPOINT=http://host.docker.internal:11434/api/generate \
+  -e OLLAMA_MODEL=qwen2.5-coder:1.5b \
+  ai-code-reviewer
+
+# Example: review a local repo mounted into the container
+docker run --rm -p 8501:8501 \
+  -v "$PWD:/workspace" \
+  -e LLM_PROVIDER=openai \
+  -e OPENAI_API_KEY=your-key \
+  ai-code-reviewer
+```
+The image does not bundle a model. Pick the backend at runtime with
+`LLM_PROVIDER` and the corresponding model/env vars (`OLLAMA_MODEL`,
+`OPENAI_MODEL`, `ANTHROPIC_MODEL`, `GEMINI_MODEL`, or `LOCAL_HF_MODEL_NAME`).
+To review a local repository from inside Docker, mount it and use the mounted
+path in the UI, for example `-v "$PWD:/workspace"` then review `/workspace`.
+The container serves the Streamlit app on `http://localhost:8501`.
+The included Compose file mounts this repo at `/workspace`, reads env vars from
+`.env`, and is the quickest local setup.
+
 **Tests (no API key required — LLM calls are mocked):**
 ```bash
-python -m tests.test_pipeline      # end-to-end integration test
-python -m unittest tests.test_unit # unit tests: categorization, dedup, scoring, verifier, tracing, dataset RAG
+pytest src/tests                          # runs the whole suite (root conftest.py adds src/ to the path)
+# or run a module directly from inside src/:
+cd src && python -m tests.test_pipeline   # end-to-end integration test
+cd src && python -m unittest tests.test_unit
 ```
 
 **Findings are surfaced in distinct categories** — *syntax errors* (promoted from

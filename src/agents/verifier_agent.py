@@ -94,31 +94,39 @@ def verifier_node(state: ReviewState) -> ReviewState:
         notes = []
         ok = True
 
-        if not fix.get("fixed_code", "").strip():
-            ok = False
-            notes.append("empty fix generated")
-        elif fix["fixed_code"].strip() == fix.get("original_code", "").strip():
-            ok = False
-            notes.append("fix is identical to original code (no-op)")
-
-        lang = languages.get(fix["file"], "unknown")
-        if ok and lang == "python":
-            syntax_ok, err = _python_syntax_ok(fix["fixed_code"])
-            if not syntax_ok:
-                notes.append(f"standalone syntax check inconclusive: {err}")
-        elif ok:
-            if not _balanced_generic(fix["fixed_code"]):
+        # Guard the whole per-fix verification: a single malformed fix or a
+        # semgrep hiccup must not crash the node (which would drop the whole
+        # confidence_score downstream). On error, flag the fix and move on.
+        try:
+            if not fix.get("fixed_code", "").strip():
                 ok = False
-                notes.append("unbalanced brackets/braces in fixed code")
-
-        rule_id = fix["finding_ref"].split(":")[-1]
-        if ok and rule_id and not rule_id.startswith("llm-"):
-            regression_ok, regression_note = _semgrep_regression_check(
-                rule_id, fix["file"], fix.get("original_code", ""), fix.get("fixed_code", ""), lang
-            )
-            notes.append(regression_note)
-            if not regression_ok:
+                notes.append("empty fix generated")
+            elif fix.get("fixed_code", "").strip() == fix.get("original_code", "").strip():
                 ok = False
+                notes.append("fix is identical to original code (no-op)")
+
+            lang = languages.get(fix.get("file", ""), "unknown")
+            if ok and lang == "python":
+                syntax_ok, err = _python_syntax_ok(fix.get("fixed_code", ""))
+                if not syntax_ok:
+                    notes.append(f"standalone syntax check inconclusive: {err}")
+            elif ok:
+                if not _balanced_generic(fix.get("fixed_code", "")):
+                    ok = False
+                    notes.append("unbalanced brackets/braces in fixed code")
+
+            rule_id = fix.get("finding_ref", "").split(":")[-1]
+            if ok and rule_id and not rule_id.startswith("llm-"):
+                regression_ok, regression_note = _semgrep_regression_check(
+                    rule_id, fix.get("file", ""), fix.get("original_code", ""),
+                    fix.get("fixed_code", ""), lang
+                )
+                notes.append(regression_note)
+                if not regression_ok:
+                    ok = False
+        except Exception as e:  # noqa: BLE001 - never let one fix sink the node
+            ok = False
+            notes.append(f"verifier check errored: {type(e).__name__}: {e}")
 
         if not ok:
             flagged_count += 1

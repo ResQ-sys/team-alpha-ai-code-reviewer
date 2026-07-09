@@ -17,7 +17,13 @@ def static_analysis_node(state: ReviewState) -> ReviewState:
     repo_path = state["repo_path"]
     errors = list(state.get("errors", []))
 
-    findings, semgrep_errors = run_semgrep(repo_path)
+    # Scope semgrep to exactly the source files we ingested (state["files"]),
+    # NOT the whole repo directory. This (a) skips non-code files like Django/
+    # Jinja HTML templates that semgrep can't parse — which otherwise flood the
+    # notices with "syntax error" noise and can trip semgrep into its minimal
+    # fallback ruleset — and (b) keeps batch mode from re-scanning the whole repo.
+    targets = state.get("file_subset") or state.get("files") or None
+    findings, semgrep_errors = run_semgrep(repo_path, targets=targets)
     errors.extend(semgrep_errors)
 
     file_graphs = []

@@ -1,0 +1,56 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-code-reviewer
+
+    # Host networking: the container shares the host's network stack, so
+    # "localhost" inside the container IS the host's localhost. This lets the
+    # app reach a host Ollama bound to the default 127.0.0.1:11434 WITHOUT
+    # changing Ollama's bind (no OLLAMA_HOST=0.0.0.0, no sudo). Works with the
+    # Docker Engine running inside WSL2 / native Linux.
+    #
+    # Trade-off: `ports:` is ignored in host mode — the app publishes directly
+    # on the host, so Streamlit is reachable at http://localhost:8501 anyway.
+    # If your Docker (e.g. Docker Desktop) doesn't support host networking,
+    # delete `network_mode: host`, restore the `ports:`/`extra_hosts:` blocks
+    # below, and set the host's Ollama to listen on 0.0.0.0 instead.
+    network_mode: host
+
+    env_file:
+      - .env
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      # Host mode → localhost reaches the host's Ollama (default 127.0.0.1 bind).
+      OLLAMA_ENDPOINT: http://localhost:11434/api/generate
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:1.5b}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      GROK_MODEL: ${GROK_MODEL:-grok-3}
+      XAI_BASE_URL: ${XAI_BASE_URL:-https://api.x.ai/v1}
+      LOCAL_HF_ENDPOINT: ${LOCAL_HF_ENDPOINT:-http://localhost:8001/generate}
+      LOCAL_HF_MODEL_NAME: ${LOCAL_HF_MODEL_NAME:-deepseek-ai/deepseek-coder-6.7b-instruct}
+      USE_RAG: ${USE_RAG:-true}
+      USE_DATASET_RAG: ${USE_DATASET_RAG:-true}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      REDIS_URL: ${REDIS_URL:-redis://localhost:6379/0}
+      REDIS_TTL: ${REDIS_TTL:-604800}
+      MAX_LLM_WORKERS: ${MAX_LLM_WORKERS:-4}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-sentence-transformers/all-MiniLM-L6-v2}
+      TRACING_BACKEND: ${TRACING_BACKEND:-none}
+    restart: unless-stopped
+
+    # --- Bridge-mode alternative (if host networking is unavailable) ---
+    # Remove `network_mode: host` above, uncomment these, and set the host's
+    # Ollama to OLLAMA_HOST=0.0.0.0:11434. Also change OLLAMA_ENDPOINT above to
+    # http://host.docker.internal:11434/api/generate.
+    # ports:
+    #   - "8501:8501"
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"

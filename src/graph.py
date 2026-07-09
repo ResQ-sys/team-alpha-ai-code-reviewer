@@ -21,6 +21,20 @@ from agents.review_generation_agent import review_generation_node
 from agents.vulnerability_agent import vulnerability_node
 from utils.tracing import traced
 
+# Ordered pipeline stages, with human-friendly labels for the UI progress
+# display. Order MUST match the edges wired in build_graph().
+PIPELINE_NODES = [
+    ("ingestion", "Ingesting repository files"),
+    ("static_analysis", "Running static analysis (Semgrep + code graph)"),
+    ("llm_review", "Code-LLM semantic review"),
+    ("vulnerability", "Merging & de-duplicating findings"),
+    ("rag", "Retrieving secure-coding guidance (RAG)"),
+    ("review_generation", "Generating explainable fixes"),
+    ("verifier", "Verifier / self-reflection pass"),
+    ("approval", "Applying human-approval policy"),
+    ("report", "Assembling final report"),
+]
+
 
 def build_graph():
     graph = StateGraph(ReviewState)

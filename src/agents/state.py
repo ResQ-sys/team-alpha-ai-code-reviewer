@@ -42,9 +42,12 @@ class ReviewState(TypedDict, total=False):
     # ---- run configuration ----
     use_rag: bool          # toggle secure-coding RAG retrieval (default True)
     use_redis: bool        # toggle Redis LLM-response caching (default True)
+    model_used: str        # Ollama model selected for this run (for display)
+    max_files: int         # cap on files sent to the LLM (0/absent = no limit)
 
     # ---- ingestion ----
     repo_path: str
+    file_subset: List[str]           # if set, review ONLY these files (batch mode)
     files: List[str]                 # discovered source files
     file_contents: Dict[str, str]     # path -> content
     languages: Dict[str, str]         # path -> detected language

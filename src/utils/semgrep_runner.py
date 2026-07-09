@@ -13,7 +13,7 @@ import json
 import os
 import shutil
 import subprocess
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from config import SEMGREP_RULESETS
 
@@ -26,16 +26,19 @@ def is_semgrep_available() -> bool:
     return shutil.which("semgrep") is not None
 
 
-def _run_semgrep_cmd(repo_path: str, configs: List[str], timeout: int):
+def _run_semgrep_cmd(targets: List[str], configs: List[str], timeout: int):
     cmd = ["semgrep", "--json", "--no-git-ignore", "--metrics=off"]
     for cfg in configs:
         cmd += ["--config", cfg]
-    cmd.append(repo_path)
+    cmd.extend(targets)          # one repo path, or an explicit list of files
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
 
-def run_semgrep(repo_path: str, timeout: int = 300) -> Tuple[List[Dict], List[str]]:
-    """Run configured semgrep rulesets against a repo path.
+def run_semgrep(repo_path: str, timeout: int = 300,
+                targets: Optional[List[str]] = None) -> Tuple[List[Dict], List[str]]:
+    """Run configured semgrep rulesets against a repo path — or, in batch mode,
+    against an explicit list of files (``targets``) so each batch only scans its
+    own files and findings don't duplicate across batches.
 
     Tries the hosted Semgrep Registry rulesets first (broad CWE/OWASP
     coverage). If those can't be fetched (offline judging environment,
@@ -51,8 +54,12 @@ def run_semgrep(repo_path: str, timeout: int = 300) -> Tuple[List[Dict], List[st
                        "Install with `pip install semgrep`.")
         return [], errors
 
+    scan_targets = list(targets) if targets else [repo_path]
+    if not scan_targets:
+        return [], errors
+
     try:
-        proc = _run_semgrep_cmd(repo_path, SEMGREP_RULESETS, timeout)
+        proc = _run_semgrep_cmd(scan_targets, SEMGREP_RULESETS, timeout)
     except subprocess.TimeoutExpired:
         errors.append(f"semgrep timed out after {timeout}s")
         return [], errors
@@ -67,7 +74,7 @@ def run_semgrep(repo_path: str, timeout: int = 300) -> Tuple[List[Dict], List[st
             "falling back to bundled offline ruleset at rules/local_security_rules.yaml."
         )
         try:
-            proc = _run_semgrep_cmd(repo_path, [_LOCAL_RULES_PATH], timeout)
+            proc = _run_semgrep_cmd(scan_targets, [_LOCAL_RULES_PATH], timeout)
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
             errors.append(f"local ruleset scan failed: {e}")
             return [], errors
@@ -110,7 +117,20 @@ def run_semgrep(repo_path: str, timeout: int = 300) -> Tuple[List[Dict], List[st
             "code_snippet": extra.get("lines", "").strip(),
         })
 
+    # Suppress semgrep's per-file parse noise (e.g. Django/Jinja templates or
+    # Python-2 files it can't tokenize). These are not actionable review findings
+    # and would otherwise bury the real notices. Summarize as a single count.
+    skipped_parse = 0
     for err in data.get("errors", []):
-        errors.append(str(err.get("message", err))[:300])
+        etype = str(err.get("type", ""))
+        msg = str(err.get("message", err))
+        if "Syntax error" in etype or "Syntax error" in msg or "was unexpected" in msg \
+                or "Lexical error" in etype:
+            skipped_parse += 1
+            continue
+        errors.append(msg[:300])
+    if skipped_parse:
+        errors.append(f"semgrep skipped {skipped_parse} file(s) it couldn't parse "
+                       f"(e.g. HTML templates) — not code-review findings.")
 
     return findings, errors

@@ -15,11 +15,12 @@ statement's "Final Output" list:
 """
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
 from typing import Dict, List
 
 from agents.state import ReviewState
-from config import SCORE_WEIGHTS
+from config import SCORE_DECAY, SCORE_FLOOR, SCORE_WEIGHTS
 from utils.tracing import summarize_trace
 
 _CATEGORY_SECTIONS = [
@@ -30,22 +31,22 @@ _CATEGORY_SECTIONS = [
 
 
 def _compute_quality_score(findings: List[Dict], total_loc: int) -> float:
+    """Severity-weighted issue *density*, mapped through a gentle exponential
+    decay so the score degrades smoothly and stays informative.
+
+    The old formula subtracted a raw penalty from 100, which slammed a heavily
+    vulnerable repo (e.g. a deliberately-insecure demo app) straight to 0 — an
+    uninformative result. Here we normalize the penalty by lines-of-code and use
+    ``100 * exp(-density / SCORE_DECAY)``: a clean repo stays near 100, and even
+    a very vulnerable one lands in a low-but-nonzero band rather than a flat 0.
+    Larger SCORE_DECAY = more lenient.
+    """
     if total_loc <= 0:
         total_loc = 1
     penalty = sum(SCORE_WEIGHTS.get(f.get("severity", "INFO"), 1) for f in findings)
-
-    # Density normalization: a large repo with the same raw penalty scores
-    # better because issues are sparser. Capped at 1.0 so a small repo (e.g. a
-    # demo) isn't *amplified* into an unfairly harsh score.
-    density_mult = min(1.0, (1000 / total_loc) ** 0.3)
-
-    # Diminishing returns: many findings should erode the score gradually
-    # rather than slamming it straight to 0. The sub-linear exponent means the
-    # 20th finding hurts far less than the 1st.
-    effective_penalty = (penalty ** 0.85) * density_mult
-
-    score = max(0.0, 100.0 - effective_penalty)
-    return round(score, 1)
+    density = penalty / total_loc
+    score = 100.0 * math.exp(-density / SCORE_DECAY)
+    return round(max(SCORE_FLOOR, score), 1)
 
 
 def _severity_counts(findings: List[Dict]) -> Dict[str, int]:
@@ -192,6 +193,9 @@ def report_node(state: ReviewState) -> ReviewState:
     return {
         **state,
         "quality_score": quality_score,
+        # Guarantee this key exists even if the verifier node errored out (the
+        # traced wrapper would otherwise drop it), so the UI never KeyErrors.
+        "confidence_score": state.get("confidence_score", 0.0),
         "final_report_json": report_json,
         "final_report_md": md,
     }

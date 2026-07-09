@@ -16,7 +16,28 @@ def ingestion_node(state: ReviewState) -> ReviewState:
     repo_path = state["repo_path"]
     errors = list(state.get("errors", []))
 
-    files = discover_source_files(repo_path)
+    # Batch mode: the app drives the pipeline one chunk of files at a time and
+    # passes exactly which files this run should cover. When set, honour it
+    # verbatim and skip discovery/capping.
+    subset = state.get("file_subset")
+    if subset:
+        files = list(subset)
+    else:
+        files = discover_source_files(repo_path)
+
+        # User-selectable cap (set from the Streamlit sidebar). Each file becomes
+        # one LLM review call — and its findings become more calls — so a large
+        # repo on a slow local model is hours of work. 0/absent means review
+        # everything. Deterministic (sorted) so the same subset is picked.
+        discovered = len(files)
+        max_files = state.get("max_files") or 0
+        if max_files and discovered > max_files:
+            files = files[:max_files]
+            errors.append(
+                f"Repository has {discovered} source files; reviewing the first "
+                f"{max_files} per the 'Max files to review' setting "
+                f"(increase it to cover more).")
+
     file_contents = {}
     languages = {}
 

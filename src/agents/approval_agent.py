@@ -34,6 +34,15 @@ def _severity_lookup(state: ReviewState) -> Dict[str, str]:
 
 
 def approval_node(state: ReviewState) -> ReviewState:
+    """Classify every suggested fix into auto-approved vs. needs-human, and
+    attach a plain-language reason to each so the UI can explain the decision.
+
+    Policy (auto_approve=True): a fix is auto-approved ONLY if it is both
+    Verifier-confirmed AND below the high-severity threshold. High-severity
+    (ERROR/CRITICAL) or Verifier-flagged fixes are escalated for human sign-off
+    — high-risk changes are never silently auto-applied. With auto_approve=False,
+    EVERY fix is routed to the human queue.
+    """
     fixes = state.get("suggested_fixes", [])
     severity_lookup = _severity_lookup(state)
     auto_approve = state.get("auto_approve", False)
@@ -43,32 +52,41 @@ def approval_node(state: ReviewState) -> ReviewState:
     rejected: List[Dict] = []
 
     for fix in fixes:
-        severity = severity_lookup.get(fix["finding_ref"], "WARNING")
-        needs_review = severity in HUMAN_APPROVAL_SEVERITIES or not fix.get("verified", False)
+        severity = severity_lookup.get(fix.get("finding_ref", ""), "WARNING")
+        verified = fix.get("verified", False)
+        high_risk = severity in HUMAN_APPROVAL_SEVERITIES
 
         item = {
-            "finding_ref": fix["finding_ref"],
-            "file": fix["file"],
-            "line": fix["line"],
+            "finding_ref": fix.get("finding_ref", ""),
+            "file": fix.get("file", "?"),
+            "line": fix.get("line", 0),
             "severity": severity,
-            "verified": fix.get("verified", False),
+            "verified": verified,
             "explanation": fix.get("explanation", ""),
         }
 
-        if not needs_review:
+        # Decide destination + reason.
+        if not auto_approve:
+            item["auto_approved"] = False
+            item["approval_reason"] = ("Manual approval mode — every fix needs a "
+                                       "human decision.")
+            requires_approval.append(item)
+        elif high_risk:
+            item["auto_approved"] = False
+            item["approval_reason"] = (f"High severity ({severity}) — escalated for "
+                                       f"human sign-off before it can be applied.")
+            requires_approval.append(item)
+        elif not verified:
+            item["auto_approved"] = False
+            item["approval_reason"] = ("Verifier could not confirm this fix "
+                                       "(possible hallucination/no-op) — needs a "
+                                       "human to review.")
+            requires_approval.append(item)
+        else:
+            item["auto_approved"] = True
+            item["approval_reason"] = (f"{severity} severity and Verifier-confirmed "
+                                       f"— low risk, auto-approved.")
             approved.append(item)
-            continue
-
-        if auto_approve and fix.get("verified", False):
-            # Even in auto mode, unverified or high-severity items are NOT
-            # silently applied — only verified + non-critical items can
-            # skip the queue, matching the "never auto-apply high risk"
-            # requirement.
-            if severity not in HUMAN_APPROVAL_SEVERITIES:
-                approved.append(item)
-                continue
-
-        requires_approval.append(item)
 
     return {
         **state,
