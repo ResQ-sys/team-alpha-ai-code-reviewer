@@ -1,0 +1,101 @@
+rules:
+  - id: python-sql-injection-string-format
+    languages: [python]
+    severity: ERROR
+    message: "Potential SQL Injection: query string built with string formatting/concatenation instead of parameterized query."
+    metadata:
+      cwe: ["CWE-89"]
+      owasp: ["A03:2021 - Injection"]
+    patterns:
+      - pattern-either:
+          - pattern: $CUR.execute("..." % $VAR)
+          - pattern: $CUR.execute("..." + $VAR)
+          - pattern: $CUR.execute(f"...{$VAR}...")
+          - pattern: $Q = "...SELECT..." % $VAR
+          - pattern: $Q = "...SELECT..." + $VAR
+          - pattern: $Q = "...INSERT..." % $VAR
+          - pattern: $Q = "...UPDATE..." % $VAR
+          - pattern: $Q = "...DELETE..." % $VAR
+
+  - id: python-sql-injection-string-format-regex
+    languages: [python]
+    severity: ERROR
+    message: "Potential SQL Injection: SQL keyword found in a string built via %-formatting or concatenation."
+    metadata:
+      cwe: ["CWE-89"]
+      owasp: ["A03:2021 - Injection"]
+    patterns:
+      - pattern-regex: '(?i)(select|insert|update|delete)\b[^\n]*["\047]\s*%\s*\w+'
+
+  - id: python-hardcoded-secret
+    languages: [python]
+    severity: ERROR
+    message: "Hard-coded credential/secret detected in source code."
+    metadata:
+      cwe: ["CWE-798", "CWE-259"]
+    patterns:
+      - pattern-regex: '(?i)\w*(api[_-]?key|secret|password|token)\w*\s*=\s*["\047][A-Za-z0-9_\-]{8,}["\047]'
+
+  - id: python-weak-hash-md5-sha1
+    languages: [python]
+    severity: WARNING
+    message: "Use of weak cryptographic hash (MD5/SHA1) — not suitable for passwords or integrity checks."
+    metadata:
+      cwe: ["CWE-327"]
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.md5(...)
+          - pattern: hashlib.sha1(...)
+
+  - id: python-insecure-deserialization-pickle
+    languages: [python]
+    severity: ERROR
+    message: "Insecure deserialization: pickle.loads on potentially untrusted data can lead to RCE."
+    metadata:
+      cwe: ["CWE-502"]
+    patterns:
+      - pattern: pickle.loads(...)
+
+  - id: python-eval-usage
+    languages: [python]
+    severity: ERROR
+    message: "Use of eval() on potentially untrusted input can lead to arbitrary code execution."
+    metadata:
+      cwe: ["CWE-95"]
+    patterns:
+      - pattern: eval(...)
+
+  - id: python-os-system-command-injection
+    languages: [python]
+    severity: ERROR
+    message: "Potential OS command injection: os.system called with concatenated/untrusted input."
+    metadata:
+      cwe: ["CWE-78"]
+    patterns:
+      - pattern-either:
+          - pattern: os.system("..." + $VAR)
+          - pattern: os.system(f"...{$VAR}...")
+
+  - id: python-bare-except
+    languages: [python]
+    severity: WARNING
+    message: "Bare except clause swallows all exceptions, including system-exit and keyboard interrupt — narrow the exception type."
+    metadata:
+      cwe: ["CWE-390"]
+    patterns:
+      - pattern: |
+          try:
+              ...
+          except:
+              ...
+
+  - id: python-string-concat-html-xss
+    languages: [python]
+    severity: WARNING
+    message: "Potential XSS: untrusted input concatenated directly into HTML without escaping."
+    metadata:
+      cwe: ["CWE-79"]
+    patterns:
+      - pattern-either:
+          - pattern: "'<' + ... + $VAR + ... + '>'"
+      - pattern-regex: '"<[^"]*"\s*\+\s*\w+'

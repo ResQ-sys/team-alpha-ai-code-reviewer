@@ -1,0 +1,48 @@
+# Docker/runtime note:
+# This file lists Python dependencies only. A Docker image for this app should
+# also install the system `git` binary because the Streamlit UI can clone
+# GitHub repositories via `utils/github_repo.py`.
+#
+# Core agent orchestration
+langgraph>=0.2.0
+langchain-core>=0.3.0
+
+# LLM clients (pluggable — see utils/llm_client.py)
+anthropic>=0.34.0
+openai>=1.40.0
+google-genai>=0.3.0      # Gemini API provider
+
+# Static analysis
+semgrep>=1.78.0
+
+# RAG / retrieval (secure-coding guidance).
+# Default backend is scikit-learn TF-IDF — light and torch-FREE, so the Docker
+# image stays small and builds fast. For higher-quality *semantic* retrieval you
+# can optionally add the two lines below (they pull in torch, ~2 GB+):
+#     sentence-transformers>=3.0.0
+#     faiss-cpu>=1.8.0
+# rag/knowledge_base.py auto-detects them and uses FAISS+embeddings if present,
+# otherwise falls back to TF-IDF. Left out here on purpose to keep builds quick.
+scikit-learn>=1.4.0
+
+# Redis caching layer (LLM-response cache; redislite = zero-setup embedded fallback)
+redis>=5.0.0
+redislite>=6.2.0
+
+# NOTE: the optional LoRA fine-tuning track (finetune/) needs a few extra
+# packages (peft, datasets, accelerate) kept OUT of this core install.
+# Only needed if you run finetune/*.py:  pip install -r requirements-finetune.txt
+
+# Web / UI
+fastapi>=0.111.0
+uvicorn>=0.30.0
+streamlit>=1.37.0
+plotly>=5.22.0          # interactive pie/bar charts in the dashboard
+matplotlib>=3.8.0       # static charts embedded in the PDF report
+reportlab>=4.1.0        # finalized PDF report generation
+
+# Utilities
+pydantic>=2.7.0
+python-dotenv>=1.0.0
+rich>=13.7.0
+requests>=2.32.0

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "cwe-89-sqli",
+    "title": "CWE-89: SQL Injection",
+    "tags": ["sql-injection", "cwe-89", "injection", "owasp-a03"],
+    "text": "SQL Injection occurs when untrusted input is concatenated directly into a SQL query. Always use parameterized queries or an ORM's query builder instead of string formatting/concatenation. In Python, use cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,)) rather than f-strings. Validate and allow-list input where possible, and apply least-privilege DB accounts."
+  },
+  {
+    "id": "cwe-78-cmdi",
+    "title": "CWE-78: OS Command Injection",
+    "tags": ["command-injection", "cwe-78", "injection", "owasp-a03"],
+    "text": "Command injection happens when user input reaches a shell command. Avoid os.system/subprocess with shell=True and string-built commands. Prefer subprocess.run with a list of arguments and shell=False, and validate/allow-list inputs. Never pass unsanitized input to eval/exec either."
+  },
+  {
+    "id": "cwe-798-hardcoded-secrets",
+    "title": "CWE-798: Use of Hard-coded Credentials",
+    "tags": ["secrets", "cwe-798", "hardcoded-credentials"],
+    "text": "Hard-coded API keys, passwords, or tokens in source code are a critical risk if the repo is ever exposed. Store secrets in environment variables or a secrets manager (AWS Secrets Manager, HashiCorp Vault) and load them at runtime. Rotate any credential that has ever been committed to version control."
+  },
+  {
+    "id": "cwe-327-weak-crypto",
+    "title": "CWE-327: Use of a Broken or Risky Cryptographic Algorithm",
+    "tags": ["cryptography", "cwe-327", "weak-hash"],
+    "text": "MD5 and SHA1 are not collision-resistant and must not be used for password hashing or integrity-critical signatures. Use bcrypt, scrypt, or Argon2 for password storage, and SHA-256/SHA-3 (with proper HMAC/keying) for integrity checks."
+  },
+  {
+    "id": "cwe-502-deserialization",
+    "title": "CWE-502: Deserialization of Untrusted Data",
+    "tags": ["deserialization", "cwe-502", "pickle", "yaml"],
+    "text": "Deserializing untrusted data with pickle.loads, yaml.load (without SafeLoader), or Java's ObjectInputStream can lead to remote code execution. Use safe formats like JSON, or yaml.safe_load, and validate schema before deserializing. Never unpickle data from an untrusted source."
+  },
+  {
+    "id": "cwe-79-xss",
+    "title": "CWE-79: Cross-Site Scripting",
+    "tags": ["xss", "cwe-79", "owasp-a03"],
+    "text": "Reflected/stored XSS occurs when untrusted input is rendered into HTML/JS without escaping. Use templating engines with auto-escaping enabled, avoid innerHTML/dangerouslySetInnerHTML with raw user input, and apply a Content-Security-Policy header as defense in depth."
+  },
+  {
+    "id": "cwe-20-input-validation",
+    "title": "CWE-20: Improper Input Validation",
+    "tags": ["input-validation", "cwe-20"],
+    "text": "All external input (query params, form fields, headers, file uploads) should be validated against an explicit allow-list of expected types, lengths, and formats before use. Fail closed: reject unexpected input rather than attempting to sanitize it heuristically."
+  },
+  {
+    "id": "cwe-259-hardcoded-password",
+    "title": "CWE-259: Use of Hard-coded Password",
+    "tags": ["secrets", "cwe-259"],
+    "text": "Do not embed default or hard-coded passwords in application code, config files checked into git, or Docker images. Inject credentials at deploy time via environment variables or an orchestrator secret store."
+  },
+  {
+    "id": "owasp-logging",
+    "title": "OWASP: Insufficient Logging & Monitoring",
+    "tags": ["logging", "owasp-a09"],
+    "text": "Security-relevant events (auth failures, access-control failures, input validation failures) should be logged with enough context to support incident response, without logging sensitive data like passwords or tokens in plaintext."
+  },
+  {
+    "id": "cwe-732-permissions",
+    "title": "CWE-732: Incorrect Permission Assignment",
+    "tags": ["permissions", "cwe-732"],
+    "text": "Files, especially those containing secrets or executable scripts, should be created with the least permissive mode necessary (e.g. 0600 for secret files). Avoid chmod 777 or world-writable directories for application data."
+  },
+  {
+    "id": "code-quality-error-handling",
+    "title": "Secure & Maintainable Error Handling",
+    "tags": ["quality", "error-handling"],
+    "text": "Avoid bare except clauses that swallow all exceptions silently; catch specific exception types and log context. Never leak stack traces or internal error details directly to end users/API responses in production."
+  },
+  {
+    "id": "code-quality-magic-numbers",
+    "title": "Maintainability: Avoid Magic Numbers and Duplication",
+    "tags": ["quality", "maintainability"],
+    "text": "Repeated literal values and duplicated logic blocks reduce maintainability and increase the risk of inconsistent fixes. Extract them into named constants or shared functions."
+  }
+]

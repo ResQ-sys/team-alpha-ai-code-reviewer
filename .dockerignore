@@ -1,0 +1,34 @@
+# --- VCS / caches / venv ---
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.DS_Store
+
+# --- secrets: never bake API keys into the image (compose passes them at
+#     runtime via env_file/environment) ---
+.env
+
+# --- generated reports / sample data ---
+code_review_report.json
+code_review_report.md
+sample_repo
+
+# --- optional LoRA fine-tuning track: not used by the running app, so keep it
+#     (and its heavy peft/datasets/accelerate deps) out of the image ---
+src/finetune
+requirements-finetune.txt
+
+# --- large presentation/doc assets not needed at runtime ---
+*.pptx
+docs
+
+# --- editor / tooling ---
+.claude
+.vscode
