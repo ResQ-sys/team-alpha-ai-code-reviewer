@@ -1,0 +1,51 @@
+# Version control
+.git
+.gitignore
+
+# Python caches / build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Local secrets / env
+.env
+*.env
+
+# Local databases and generated reports
+reviews.db
+code_review_report.md
+code_review_report.json
+evaluation/report.json
+evaluation/report.md
+
+# Editor / agent tooling
+.claude/
+.agents/
+.idea/
+.vscode/
+
+# CI / Docker meta (not needed inside the image)
+.github/
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Windows metadata
+*:Zone.Identifier

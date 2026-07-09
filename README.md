@@ -15,7 +15,7 @@ human-in-the-loop approval step.
 | Multi-Agent AI Workflow | `graph.py` (LangGraph `StateGraph`), 9 nodes in `agents/` |
 | Code Large Language Models (Code Llama, DeepSeek-Coder, StarCoder, Qwen2.5-Coder) | `utils/llm_client.py` — pluggable provider (`anthropic` / `openai` / `local_hf`); swap in any locally-served Code-LLM via the `local_hf` branch |
 | Retrieval-Augmented Generation (Code RAG) | `rag/knowledge_base.py` + `rag/secure_coding_docs.json`, used by `agents/rag_agent.py` |
-| Static & Semantic Code Analysis | `utils/semgrep_runner.py` (Semgrep, OWASP/CWE rulesets, with an offline fallback ruleset in `rules/local_security_rules.yaml`) |
+| Static & Semantic Code Analysis | `utils/semgrep_runner.py` (Semgrep, OWASP/CWE rulesets).  An offline fallback ruleset is available in `rules/local_security_rules.yaml` for environments where the hosted Semgrep Registry cannot be accessed.
 | Graph Neural Networks (Code Graph Representation) | `utils/code_parser.py` — AST/regex-derived function/class/call graph fed to the LLM as structural context (documented swap-in point for a trained GNN) |
 | Vulnerability Detection Models | Semgrep + LLM semantic findings merged/deduped in `agents/vulnerability_agent.py` |
 | Explainable AI | `agents/review_generation_agent.py` — every finding gets a plain-language explanation + RAG citations |
@@ -176,4 +176,99 @@ code_reviewer_agent/
 ├── app.py                  # Streamlit dashboard
 ├── config.py
 └── requirements.txt
+```
+
+---
+
+## 8. Production layer
+
+The base pipeline (§2) is a working reviewer. The **production layer** adds an
+autonomous secure-development stage on top of it — applying, self-repairing,
+and verifying fixes — plus a service API, persistence, evaluation, and
+observability. It is **fully additive**: `graph.py`, `agents/state.py`, and the
+individual agents are untouched, so `run_pipeline()` still runs exactly as
+before. Full detail lives in **[ARCHITECTURE.md](ARCHITECTURE.md)**; this is the
+operator's summary.
+
+### 8.1 What was added
+
+| Package / module | Role |
+|---|---|
+| `utils/llm_client.py` → `complete_schema()` | Provider-aware **structured LLM output** with schema validation + corrective retry (`{"_parse_error": True, "_raw": …}` on final failure) |
+| `secure_dev/patch.py` | Indentation-tolerant snippet matching + unified diffs |
+| `secure_dev/git_ops.py` | Timeout-guarded git + snapshot/restore rollback |
+| `secure_dev/fix_applier.py` | Safe, reversible **batch fix application** (dry-run default, git-committed) |
+| `secure_dev/repair_loop.py` | **Self-healing** per-finding loop in a temp repo copy (re-scan + tests + LLM improve) |
+| `persistence/store.py` | Thread-safe **SQLite** job store (jobs, reports, approvals, applied fixes) |
+| `server/api.py` | **FastAPI** REST + **SSE** service |
+| `evaluation/harness.py` + `evaluation/fixtures/` | Offline **CWE-detection eval** (precision/recall/F1 + fix-success) |
+| `observability/logging_setup.py` | Structured logging + `timed` spans |
+| `config.py` (additive) | `MAX_REPAIR_ATTEMPTS`, `DB_PATH`, `APPLY_DRY_RUN_DEFAULT`, `APPLY_ONLY_VERIFIED`, `LOG_LEVEL`, `validate_settings()` |
+
+### 8.2 Extended flow
+
+```
+review pipeline ─▶ apply (dry-run diffs) ─▶ human approval
+                                          ─▶ self-repair (temp copy: re-scan + tests + LLM)
+                                          ─▶ verified apply (snapshot → write → git commit) ─▶ persist
+```
+
+The original tree is only ever changed deliberately: the repair loop works on a
+**temp copy**, and the applier **snapshots and restores** on any failure.
+
+### 8.3 Run the service
+
+```bash
+uvicorn server.api:app --host 0.0.0.0 --port 8000
+```
+
+| Method & path | Purpose |
+|---|---|
+| `GET  /api/health` | Liveness |
+| `POST /api/analyze` `{repo_path}` | Queue a review (background thread) → `{job_id}` |
+| `GET  /api/jobs/{job_id}` | Full job record (404 if missing) |
+| `GET  /api/jobs` | Recent jobs |
+| `GET  /api/jobs/{job_id}/events` | **SSE** status stream until done/error |
+| `POST /api/approvals` `{job_id, decisions}` | Persist human decisions |
+| `POST /api/apply` `{job_id, dry_run=true}` | Apply (or preview) the job's suggested fixes |
+
+### 8.4 Run the evaluation harness
+
+```bash
+python -m evaluation.harness            # offline, semgrep-only, deterministic
+python -m evaluation.harness --pipeline # also run the full pipeline (needs an LLM)
+# → evaluation/report.json + evaluation/report.md
+```
+
+Fixtures cover SQLi (CWE-89), command injection (CWE-78), weak hash (CWE-327),
+insecure deserialization (CWE-502), `eval` (CWE-95), and hard-coded secrets
+(CWE-798/259).
+
+### 8.5 Applying fixes programmatically
+
+The CLI (`main.py`) currently exposes `--repo`, `--interactive`, `--md-out`,
+`--json-out`. Fix application / self-repair are driven through the API
+(`/api/apply`) and the module APIs:
+
+```python
+from secure_dev.fix_applier import apply_fixes
+from secure_dev.repair_loop import repair_finding
+
+result = apply_fixes(repo, report["suggested_fixes"], dry_run=True)  # preview diffs
+healed = repair_finding(repo, finding, fix, max_attempts=3)          # self-heal one finding
+```
+
+A thin CLI wrapper (`--apply` / `--repair` / `--dry-run` / `--db`) over these
+functions plus `persistence.store.Store` is the intended next increment.
+
+### 8.6 Deploy
+
+Entrypoint-accurate `Dockerfile`, `docker-compose.yml` (api + Streamlit +
+Ollama), and a GitHub Actions CI workflow (ruff + pytest + offline eval gate)
+are provided in **[ARCHITECTURE.md §6](ARCHITECTURE.md)**.
+
+### 8.7 Tests
+
+```bash
+pytest -q   # every new module covered; all LLM/semgrep/network mocked, no repo mutation
 ```

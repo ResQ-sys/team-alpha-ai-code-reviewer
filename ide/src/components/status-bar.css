@@ -1,0 +1,66 @@
+.status-bar {
+  height: var(--statusbar-h);
+  flex: 0 0 var(--statusbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-2);
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  user-select: none;
+}
+
+.sb-left,
+.sb-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 100%;
+}
+
+.sb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--sp-2);
+  height: 100%;
+  white-space: nowrap;
+}
+
+.sb-path {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  max-width: 42vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.sb-status--running .sb-dot {
+  background: var(--sev-medium);
+  animation: sb-pulse 1s ease-in-out infinite;
+}
+.sb-status--done .sb-dot {
+  background: var(--ok);
+}
+.sb-status--error .sb-dot {
+  background: var(--sev-critical);
+}
+
+@keyframes sb-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}

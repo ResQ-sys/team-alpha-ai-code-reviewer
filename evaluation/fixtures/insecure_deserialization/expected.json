@@ -1,0 +1,4 @@
+{
+  "description": "Insecure deserialization via pickle.loads on untrusted bytes",
+  "expected_cwes": ["CWE-502"]
+}

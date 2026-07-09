@@ -1,0 +1,4 @@
+{
+  "description": "OS command injection via os.system with concatenated untrusted input",
+  "expected_cwes": ["CWE-78"]
+}

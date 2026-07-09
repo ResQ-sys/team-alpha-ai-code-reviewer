@@ -63,7 +63,7 @@ def _get_snippet(state: ReviewState, finding) -> str:
 
 
 def review_generation_node(state: ReviewState) -> ReviewState:
-    client = LLMClient()
+    client = LLMClient(model=state.get("model"))
     errors = list(state.get("errors", []))
     guidance_map = state.get("retrieved_guidance", {})
 

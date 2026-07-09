@@ -1,0 +1,4 @@
+{
+  "description": "Use of weak cryptographic hash (MD5) for password hashing",
+  "expected_cwes": ["CWE-327"]
+}

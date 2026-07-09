@@ -63,7 +63,7 @@ Source code:
 
 
 def llm_review_node(state: ReviewState) -> ReviewState:
-    client = LLMClient()
+    client = LLMClient(model=state.get("model"))
     errors = list(state.get("errors", []))
 
     summaries: Dict[str, str] = {}

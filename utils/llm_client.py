@@ -29,8 +29,12 @@ from config import (
 
 
 class LLMClient:
-    def __init__(self, provider: Optional[str] = None):
+    def __init__(self, provider: Optional[str] = None, model: Optional[str] = None):
         self.provider = provider or LLM_PROVIDER
+        # Per-instance model override. When omitted, falls back to the module
+        # default so existing callers are unchanged. This is what lets a
+        # UI-selected model reach the Ollama backend (see ``_ollama``).
+        self.model = model or OLLAMA_MODEL
 
     # ------------------------------------------------------------------
     def complete(self, system: str, prompt: str, max_tokens: int = 1500) -> str:
@@ -53,6 +57,90 @@ class LLMClient:
             max_tokens,
         )
         return self._safe_json(raw)
+
+    # ------------------------------------------------------------------
+    def complete_schema(
+        self,
+        system: str,
+        prompt: str,
+        schema: dict,
+        max_tokens: int = 1500,
+        retries: int = 2,
+    ) -> dict:
+        """Return a JSON object validated against ``schema['required']`` keys.
+
+        Provider-aware JSON enforcement:
+          * ``ollama`` -> forces native ``format: json`` on the request body.
+          * ``anthropic`` / ``openai`` -> steered with the schema embedded in
+            the system prompt (no native structured-output flag assumed).
+
+        On a parse failure or a missing required key the call is retried up to
+        ``retries`` times with an appended corrective instruction that names the
+        offending problem. On final failure returns
+        ``{"_parse_error": True, "_raw": <last raw text>}``.
+
+        Args:
+            system: Base system prompt.
+            prompt: User prompt.
+            schema: JSON-schema-ish dict; only its ``required`` list is enforced.
+            max_tokens: Generation cap forwarded to the backend.
+            retries: Number of *additional* attempts after the first (>= 0).
+
+        Returns:
+            The parsed dict on success, else the ``_parse_error`` sentinel.
+        """
+        required = list(schema.get("required", []) or [])
+        schema_hint = self._schema_hint(schema)
+        base_system = system
+        if self.provider != "ollama":
+            # For non-ollama providers we cannot rely on a native JSON mode,
+            # so we steer the model with the schema in the system prompt.
+            base_system = (
+                f"{system}\n\nYou MUST respond with ONLY a single valid JSON "
+                f"object. No markdown fences, no preamble, no trailing text.\n"
+                f"{schema_hint}"
+            )
+
+        total_attempts = max(1, retries + 1)
+        raw = ""
+        correction = ""
+        last_error = "no attempts executed"
+
+        for attempt in range(total_attempts):
+            system_prompt = base_system + correction
+            raw = self._complete_enforced(system_prompt, prompt, max_tokens)
+            parsed = self._safe_json(raw)
+
+            if parsed.get("_parse_error"):
+                last_error = "response was not valid JSON"
+            else:
+                missing = [key for key in required if key not in parsed]
+                if not missing:
+                    return parsed
+                last_error = "missing required key(s): " + ", ".join(missing)
+
+            # Prepare a corrective instruction for the next attempt (if any).
+            correction = (
+                "\n\nYour previous response was rejected because "
+                f"{last_error}. Respond again with ONLY a valid JSON object "
+                f"that includes all required keys.\n{schema_hint}"
+            )
+
+        return {"_parse_error": True, "_raw": raw}
+
+    def _complete_enforced(self, system: str, prompt: str, max_tokens: int) -> str:
+        """Call the backend, enabling native JSON mode for ollama."""
+        if self.provider == "ollama":
+            return self._ollama(system, prompt, max_tokens, force_json=True)
+        return self.complete(system, prompt, max_tokens)
+
+    @staticmethod
+    def _schema_hint(schema: dict) -> str:
+        """Render a compact required-key hint for prompt steering."""
+        required = list(schema.get("required", []) or [])
+        if not required:
+            return "Required keys: (none specified)."
+        return "Required top-level keys: " + ", ".join(required) + "."
 
     # ------------------------------------------------------------------
     @staticmethod
@@ -100,20 +188,31 @@ class LLMClient:
         )
         return resp.choices[0].message.content or ""
 
-    def _ollama(self, system: str, prompt: str, max_tokens: int) -> str:
+    def _ollama(
+        self,
+        system: str,
+        prompt: str,
+        max_tokens: int,
+        force_json: bool = False,
+    ) -> str:
         """
         Calls a locally running Ollama server via its native generate API.
             POST /api/generate {"model", "system", "prompt", "stream": false,
                                 "options": {"num_predict": max_tokens}}
             -> {"response": "..."}
+
+        When ``force_json`` is set, ``"format": "json"`` is added so the server
+        constrains decoding to syntactically valid JSON.
         """
         payload = {
-            "model": OLLAMA_MODEL,
+            "model": self.model,
             "system": system,
             "prompt": prompt,
             "stream": False,
             "options": {"num_predict": max_tokens},
         }
+        if force_json:
+            payload["format"] = "json"
         resp = requests.post(OLLAMA_ENDPOINT, json=payload, timeout=300)
         resp.raise_for_status()
         return resp.json().get("response", "")

@@ -1,0 +1,260 @@
+/* Live agent-activity timeline. All color/space/motion from tokens.css. */
+
+.aa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  font-family: var(--font-ui);
+}
+
+/* --- header ---------------------------------------------------------------- */
+.aa-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.aa-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.aa-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.aa-progress {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 1px 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+}
+.aa-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aa-model-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* --- timeline -------------------------------------------------------------- */
+.aa-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.aa-step {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: var(--sp-2);
+  padding: 2px var(--sp-2) 2px 0;
+  border-radius: var(--r-sm);
+  transition: background var(--dur-fast) var(--ease);
+}
+.aa-step.is-active {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+/* rail: glyph + connecting line */
+.aa-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.aa-connector {
+  flex: 1 1 auto;
+  width: 2px;
+  min-height: 12px;
+  margin: 3px 0;
+  background: var(--border);
+  border-radius: 1px;
+}
+.aa-step--done .aa-connector {
+  background: color-mix(in srgb, var(--ok) 55%, var(--border));
+}
+
+/* glyphs */
+.aa-glyph {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+.aa-glyph--pending {
+  width: 8px;
+  height: 8px;
+  margin: 5px 0;
+  background: var(--text-faint);
+  opacity: 0.5;
+}
+.aa-glyph--running {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.aa-glyph--done {
+  color: var(--bg);
+  background: var(--ok);
+}
+
+.aa-spinner {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  animation: aa-spin 0.7s linear infinite;
+}
+@keyframes aa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* pulsing halo on the active running glyph */
+.aa-glyph--running::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  animation: aa-pulse 1.5s var(--ease) infinite;
+}
+@keyframes aa-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+/* --- step body ------------------------------------------------------------- */
+.aa-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: var(--sp-2);
+}
+.aa-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-height: 18px;
+}
+.aa-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease);
+}
+.aa-step--running .aa-label,
+.aa-step--done .aa-label {
+  color: var(--text);
+}
+.aa-step--running .aa-label {
+  font-weight: 500;
+}
+.aa-step--pending .aa-label {
+  color: var(--text-faint);
+}
+
+.aa-status-tag {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.aa-step--running .aa-status-tag {
+  color: var(--accent);
+}
+.aa-step--done .aa-status-tag {
+  color: var(--ok);
+}
+
+.aa-detail {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+/* fine-grained live log under the active step */
+.aa-log {
+  list-style: none;
+  margin: 3px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.aa-log-line {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: aa-fade var(--dur-fast) var(--ease);
+}
+@keyframes aa-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.aa-warming {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aa-spinner {
+    animation-duration: 1.4s;
+  }
+  .aa-glyph--running::after,
+  .aa-log-line {
+    animation: none;
+  }
+}

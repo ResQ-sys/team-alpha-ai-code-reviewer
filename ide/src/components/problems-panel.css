@@ -1,0 +1,303 @@
+/* Security-review sidebar — VS Code Problems panel, refined.
+   Colors/spacing come from tokens.css; nothing is hardcoded here. */
+
+.problems {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--font-ui);
+  overflow: hidden;
+}
+
+/* --- header ---------------------------------------------------------------- */
+.pr-head {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.pr-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.pr-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.pr-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.pr-score b {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.pr-run {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--sp-3);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+.pr-run:hover:not(:disabled) {
+  background: var(--accent-dim);
+}
+.pr-run:disabled {
+  cursor: default;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+.pr-run svg {
+  flex: 0 0 auto;
+}
+
+/* summary severity pills */
+.pr-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.pr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+}
+.pr-pill b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* --- body scroll region ---------------------------------------------------- */
+.pr-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* spinner + empty/error states */
+.pr-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.pr-state--error {
+  color: var(--sev-high);
+}
+.pr-spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  animation: pr-spin 0.7s linear infinite;
+}
+@keyframes pr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- file groups ----------------------------------------------------------- */
+.pr-group {
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.pr-group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: background var(--dur-fast) var(--ease);
+}
+.pr-group-head:hover {
+  background: var(--panel-2);
+}
+.pr-chevron {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.pr-group.is-open .pr-chevron {
+  transform: rotate(90deg);
+}
+.pr-file {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text);
+}
+.pr-dir {
+  color: var(--text-faint);
+}
+.pr-count {
+  flex: 0 0 auto;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+}
+
+/* --- finding rows ---------------------------------------------------------- */
+.pr-finding {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-5);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.pr-finding:hover {
+  background: var(--panel-2);
+  border-left-color: var(--border);
+}
+
+.pr-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--sev-color, var(--text-faint));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sev-color, var(--text-faint)) 18%, transparent);
+}
+
+.pr-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pr-msg {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+}
+.pr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.pr-rule {
+  color: var(--sev-color, var(--text-dim));
+}
+.pr-line {
+  color: var(--text-faint);
+}
+.pr-cwe {
+  padding: 0 4px;
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+}
+
+/* Per-finding badge: a fix exists, applied via the job-level action below. */
+.pr-fix-badge {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 2px 7px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--sev-low);
+  background: color-mix(in srgb, var(--sev-low) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sev-low) 30%, transparent);
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+
+/* Job-level "Apply all fixes" action in the panel header. */
+.pr-apply-all {
+  width: 100%;
+  height: 30px;
+  padding: 0 var(--sp-3);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sev-low);
+  background: color-mix(in srgb, var(--sev-low) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sev-low) 40%, transparent);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.pr-apply-all:hover:not(:disabled) {
+  color: var(--bg);
+  background: var(--sev-low);
+}
+.pr-apply-all:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.pr-apply-all--ok {
+  color: var(--ok);
+  background: transparent;
+  border-color: transparent;
+}
+.pr-apply-all--err {
+  color: var(--sev-critical);
+  border-color: color-mix(in srgb, var(--sev-critical) 40%, transparent);
+}

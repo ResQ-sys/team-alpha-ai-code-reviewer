@@ -1,0 +1,4 @@
+{
+  "description": "Code injection via eval() on untrusted input",
+  "expected_cwes": ["CWE-95"]
+}

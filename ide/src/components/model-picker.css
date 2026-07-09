@@ -1,0 +1,96 @@
+.model-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 100%;
+  padding: 0 var(--sp-1) 0 var(--sp-2);
+  color: var(--text-dim);
+}
+
+.model-picker svg {
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.model-picker select,
+.model-input {
+  height: 18px;
+  max-width: 200px;
+  padding: 0 var(--sp-1);
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.model-input {
+  width: 148px;
+  font-family: var(--font-mono);
+  cursor: text;
+}
+
+.model-picker select:hover,
+.model-input:hover,
+.model-input:focus {
+  color: var(--text);
+  border-color: var(--border);
+  background: var(--panel-2);
+  outline: none;
+}
+
+.model-input:focus {
+  border-color: var(--accent);
+}
+
+.model-input:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.model-picker option {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+.model-pull-btn {
+  height: 18px;
+  padding: 0 var(--sp-2);
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--r-sm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: filter var(--dur-fast) var(--ease);
+}
+
+.model-pull-btn:hover {
+  filter: brightness(1.12);
+}
+
+.model-pull-status {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

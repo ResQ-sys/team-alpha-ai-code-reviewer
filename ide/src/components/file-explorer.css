@@ -1,0 +1,117 @@
+.file-explorer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.fx-header {
+  flex: 0 0 auto;
+  height: var(--tabbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-3);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* When the header hosts the OpenFolder control it manages its own padding. */
+.fx-header--folder {
+  padding: 0 var(--sp-1);
+}
+
+.fx-header-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.fx-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--sp-1) 0 var(--sp-3);
+}
+
+.fx-empty {
+  margin: var(--sp-3);
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.fx-error {
+  color: var(--sev-critical);
+}
+
+.fx-children {
+  /* nesting handled via per-row padding so hover fills the full width */
+}
+
+.fx-row {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 24px;
+  padding-right: var(--sp-2);
+  text-align: left;
+  color: var(--text-dim);
+  border-radius: 0;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.fx-row:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.fx-row.is-active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+
+.fx-row.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+}
+
+.fx-chevron {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.fx-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.fx-chevron-spacer {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+}
+
+.fx-icon {
+  flex: 0 0 auto;
+}
+
+.fx-folder {
+  color: var(--accent);
+}
+
+.fx-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}

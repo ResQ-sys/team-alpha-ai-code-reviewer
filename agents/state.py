@@ -80,3 +80,12 @@ class ReviewState(TypedDict, total=False):
 
     # ---- misc ----
     errors: List[str]
+
+    # Correlation id for live agent-activity streaming (observability.events).
+    # Optional and non-breaking: when absent, nodes run without emitting events.
+    job_id: str
+
+    # Optional model override selected in the UI. When present, LLM nodes build
+    # their :class:`LLMClient` with it; when absent they use the configured
+    # default (behaviour is unchanged for callers that omit it).
+    model: str

@@ -1,0 +1,116 @@
+.editor-tabs {
+  flex: 0 0 auto;
+  height: var(--tabbar-h);
+  display: flex;
+  align-items: stretch;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.editor-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.editor-tabs.is-empty {
+  background: var(--editor-bg);
+  border-bottom-color: var(--border-soft);
+}
+
+.et-tab {
+  position: relative;
+  flex: 0 0 auto;
+  max-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  color: var(--text-faint);
+  background: var(--panel);
+  border-right: 1px solid var(--border-soft);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.et-tab:hover {
+  color: var(--text-dim);
+}
+
+.et-tab.is-active {
+  color: var(--text);
+  background: var(--editor-bg);
+}
+
+/* top accent rail signals the active tab, Cursor/VS Code style */
+.et-tab.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--accent);
+}
+
+.et-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.et-close {
+  position: relative;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  border-radius: var(--r-sm);
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.et-close:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+/* dirty dot occupies the close slot until the tab is hovered */
+.et-dirty-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.et-close-x {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+/* default (clean) tab: close X shows on hover */
+.et-tab:hover .et-close-x,
+.et-tab.is-active .et-close-x {
+  opacity: 1;
+}
+
+/* dirty tab: show the dot, hide the X, until the row/close is hovered */
+.et-tab.is-dirty .et-dirty-dot {
+  opacity: 1;
+}
+.et-tab.is-dirty .et-close-x {
+  opacity: 0;
+}
+.et-tab.is-dirty:hover .et-dirty-dot,
+.et-tab.is-dirty .et-close:hover .et-dirty-dot {
+  opacity: 0;
+}
+.et-tab.is-dirty:hover .et-close-x,
+.et-tab.is-dirty .et-close:hover .et-close-x {
+  opacity: 1;
+}

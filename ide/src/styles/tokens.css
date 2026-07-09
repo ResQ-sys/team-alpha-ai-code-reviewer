@@ -1,0 +1,57 @@
+/*
+ * DESIGN TOKENS — single source of truth for the IDE shell.
+ * Never hardcode a color/radius/font elsewhere; reference these variables.
+ * Aesthetic target: Cursor / VS Code — dark, refined, thin 1px borders.
+ */
+:root {
+  /* surfaces */
+  --bg: #0d0d0f;
+  --panel: #161619;
+  --panel-2: #1b1b1f;
+  --editor-bg: #141417;
+  --border: #26262b;
+  --border-soft: #1f1f24;
+
+  /* text */
+  --text: #e4e4e7;
+  --text-dim: #9a9aa2;
+  --text-faint: #6b6b73;
+
+  /* accent */
+  --accent: #4c8dff;
+  --accent-dim: #2d5db3;
+
+  /* severity + status */
+  --sev-critical: #ff5c5c;
+  --sev-high: #ff9f43;
+  --sev-medium: #ffd452;
+  --sev-low: #7bd88f;
+  --ok: #7bd88f;
+
+  /* type */
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, ui-monospace, monospace;
+
+  /* radii */
+  --r-sm: 6px;
+  --r-md: 9px;
+
+  /* 8px spacing grid */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* chrome dimensions */
+  --activitybar-w: 48px;
+  --sidebar-w: 250px;
+  --chat-w: 380px;
+  --statusbar-h: 24px;
+  --tabbar-h: 36px;
+
+  /* motion */
+  --dur-fast: 120ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}

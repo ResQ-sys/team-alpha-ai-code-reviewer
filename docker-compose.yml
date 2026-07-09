@@ -1,0 +1,64 @@
+# docker-compose for team-alpha-ai-code-reviewer
+#
+# Two services:
+#   - app:    FastAPI backend (server.api:app) running the review pipeline.
+#   - ollama: local LLM inference server.
+#
+# First-run model pull (the app talks to OLLAMA_MODEL, default below):
+#   docker compose up -d ollama
+#   docker compose exec ollama ollama pull llama3.1:8b
+#   docker compose up -d app
+#
+# Or set LLM_PROVIDER=anthropic|openai and provide the matching API key via
+# the environment / an .env file to bypass Ollama entirely.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: team-alpha-ai-code-reviewer:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      LLM_PROVIDER: "${LLM_PROVIDER:-ollama}"
+      OLLAMA_HOST: "http://ollama:11434"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.1:8b}"
+      DB_PATH: "/app/data/reviews.db"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      # Passed through only when using a hosted provider; harmless if unset.
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+    volumes:
+      # Persist the SQLite job store across restarts.
+      - app-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      # Persist pulled models so they survive restarts (avoids re-downloading).
+      - ollama-models:/root/.ollama
+    healthcheck:
+      # `ollama list` succeeds only once the server is accepting requests.
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  ollama-models:

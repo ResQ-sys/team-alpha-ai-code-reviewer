@@ -1,0 +1,162 @@
+.of {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* trigger sits in the Explorer header, replacing the plain label */
+.of-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  height: 26px;
+  padding: 0 var(--sp-2);
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.of-trigger:hover {
+  color: var(--text);
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+.of-trigger[aria-expanded='true'] {
+  color: var(--text);
+  border-color: var(--accent-dim);
+}
+
+.of-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.of-caret {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.of-caret.is-open {
+  transform: rotate(180deg);
+}
+
+/* popover form */
+.of-pop {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  left: var(--sp-2);
+  right: var(--sp-2);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.of-field-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.of-field {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.of-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  padding: 0 var(--sp-2);
+  color: var(--text);
+  background: var(--editor-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.of-input::placeholder {
+  color: var(--text-faint);
+}
+.of-input:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+}
+
+.of-browse {
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 0 var(--sp-2);
+  color: var(--text-dim);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.of-browse:hover {
+  color: var(--text);
+  border-color: var(--accent-dim);
+}
+
+.of-error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--sev-high);
+}
+
+.of-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+.of-btn {
+  height: 28px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+.of-btn--ghost {
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+.of-btn--ghost:hover {
+  color: var(--text);
+  background: var(--panel);
+}
+.of-btn--primary {
+  color: #fff;
+  background: var(--accent);
+}
+.of-btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, #fff);
+}
+.of-btn--primary:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

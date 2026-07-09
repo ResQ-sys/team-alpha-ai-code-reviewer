@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Reviewer IDE</title>
+    <!--
+      Fonts: we do NOT depend on a network font at runtime. --font-ui and
+      --font-mono in tokens.css fall back to system-ui / SF Mono / Menlo so the
+      editor renders identically offline. Inter / JetBrains Mono are only used
+      if the host has them installed locally.
+    -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

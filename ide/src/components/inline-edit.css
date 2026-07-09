@@ -1,0 +1,229 @@
+.inline-edit {
+  position: absolute;
+  z-index: 40;
+  max-width: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  animation: ie-pop var(--dur-fast) var(--ease);
+}
+
+@keyframes ie-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ie-prompt-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+}
+
+.ie-badge {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.ie-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  resize: none;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ie-input::placeholder {
+  color: var(--text-faint);
+}
+
+.ie-run {
+  flex: 0 0 auto;
+  padding: 3px 12px;
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+
+.ie-run:hover {
+  background: color-mix(in srgb, var(--accent) 88%, white);
+}
+
+.ie-run:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ie-spinner {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ie-spin 0.7s linear infinite;
+}
+
+@keyframes ie-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ie-diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border-soft);
+  max-height: 260px;
+}
+
+.ie-diff-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: auto;
+}
+
+.ie-old {
+  border-right: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--sev-critical) 5%, transparent);
+}
+
+.ie-new {
+  background: color-mix(in srgb, var(--sev-low) 5%, transparent);
+}
+
+.ie-diff-tag {
+  position: sticky;
+  top: 0;
+  padding: 4px var(--sp-3);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.ie-old .ie-diff-tag {
+  color: color-mix(in srgb, var(--sev-critical) 70%, var(--text-faint));
+}
+
+.ie-new .ie-diff-tag {
+  color: color-mix(in srgb, var(--sev-low) 70%, var(--text-faint));
+}
+
+.ie-code {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ie-new .ie-code {
+  color: var(--text);
+}
+
+.ie-caret {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: ie-blink 1s steps(2, start) infinite;
+}
+
+@keyframes ie-blink {
+  to {
+    opacity: 0;
+  }
+}
+
+.ie-error {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--border-soft);
+  color: var(--sev-critical);
+  font-size: 12px;
+}
+
+.ie-actions {
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--border-soft);
+  background: var(--panel-2);
+}
+
+.ie-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 4px 12px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.ie-accept {
+  color: var(--bg);
+  background: var(--sev-low);
+}
+
+.ie-accept:hover {
+  background: color-mix(in srgb, var(--sev-low) 88%, white);
+}
+
+.ie-reject {
+  color: var(--text-dim);
+  background: transparent;
+  border-color: var(--border);
+}
+
+.ie-reject:hover {
+  color: var(--text);
+  background: var(--panel);
+}
+
+.ie-btn kbd {
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
+  border-radius: 3px;
+  background: color-mix(in srgb, black 22%, transparent);
+}
+
+.ie-accept kbd {
+  background: color-mix(in srgb, black 18%, transparent);
+}

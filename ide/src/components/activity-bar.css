@@ -1,0 +1,81 @@
+.activity-bar {
+  width: var(--activitybar-w);
+  flex: 0 0 var(--activitybar-w);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+}
+
+.ab-spacer {
+  flex: 1 1 auto;
+}
+
+.ab-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  border-radius: var(--r-sm);
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.ab-btn:hover {
+  color: var(--text-dim);
+  background: var(--panel-2);
+}
+
+.ab-btn.is-active {
+  color: var(--text);
+}
+
+/* left accent rail on the active item, VS Code style */
+.ab-btn.is-active::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.ab-run-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sev-low);
+  box-shadow: 0 0 0 2px var(--panel);
+  animation: ab-run-pulse 1.4s var(--ease) infinite;
+}
+@keyframes ab-run-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.ab-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1;
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: 8px;
+}

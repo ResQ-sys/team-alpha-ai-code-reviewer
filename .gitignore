@@ -16,3 +16,25 @@ __pycache__/
 # Generated pipeline artifacts
 code_review_report.md
 code_review_report.json
+code_fixes.patch
+evaluation/report.json
+evaluation/report.md
+
+# Python build / test artifacts
+*.egg-info/
+.coverage
+.pytest_cache/
+.ruff_cache/
+
+# SQLite job store (runtime)
+reviews.db
+reviews.db-shm
+reviews.db-wal
+
+# Node / frontend build (ide/)
+node_modules/
+dist/
+*.tsbuildinfo
+
+# OS
+.DS_Store
