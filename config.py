@@ -55,11 +55,13 @@ SEMGREP_RULESETS = [
 # is considered "applyable".
 HUMAN_APPROVAL_SEVERITIES = {"ERROR", "CRITICAL"}
 
-# Quality score weights (used in report_agent.py)
+# Quality score weights (used in report_agent.py). Deliberately lenient so the
+# score degrades gracefully rather than collapsing to 0 on a vulnerable repo —
+# it's a relative quality signal, not a pass/fail gate.
 SCORE_WEIGHTS = {
-    "CRITICAL": 25,
-    "ERROR": 12,
-    "WARNING": 4,
+    "CRITICAL": 18,
+    "ERROR": 9,
+    "WARNING": 3,
     "INFO": 1,
 }
 

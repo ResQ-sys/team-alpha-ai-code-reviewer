@@ -26,10 +26,18 @@ def _compute_quality_score(findings: List[Dict], total_loc: int) -> float:
     if total_loc <= 0:
         total_loc = 1
     penalty = sum(SCORE_WEIGHTS.get(f.get("severity", "INFO"), 1) for f in findings)
-    # Normalize penalty against codebase size so a huge repo with a few
-    # issues doesn't score identically to a tiny repo with the same count.
-    density_penalty = penalty * (1000 / total_loc) ** 0.3
-    score = max(0.0, 100.0 - density_penalty)
+
+    # Density normalization: a large repo with the same raw penalty scores
+    # better because issues are sparser. Capped at 1.0 so a small repo (e.g. a
+    # demo) isn't *amplified* into an unfairly harsh score.
+    density_mult = min(1.0, (1000 / total_loc) ** 0.3)
+
+    # Diminishing returns: many findings should erode the score gradually
+    # rather than slamming it straight to 0. The sub-linear exponent means the
+    # 20th finding hurts far less than the 1st.
+    effective_penalty = (penalty ** 0.85) * density_mult
+
+    score = max(0.0, 100.0 - effective_penalty)
     return round(score, 1)
 
 
