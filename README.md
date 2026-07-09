@@ -119,9 +119,13 @@ you can compare grounded vs. ungrounded generation from the UI.
 python -m tests.test_pipeline
 ```
 
-**Optional: LoRA fine-tuning & rating** — train a Code-LLM towards secure-coding
-recommendations and rate it against the base model (see `finetune/README.md`):
+**Optional (offline track): LoRA fine-tuning & rating** — a *separate, offline*
+pipeline to train a Code-LLM towards secure-coding recommendations and rate it
+against the base model. It is fully decoupled from the app/pipeline (nothing at
+runtime imports it) and has extra dependencies kept **out** of the core install.
+A GPU is strongly recommended. See `finetune/README.md`.
 ```bash
+pip install -r requirements-finetune.txt             # extra deps (peft, datasets, accelerate)
 python finetune/prepare_data.py                      # build the dataset
 python finetune/train_lora.py --max-steps 5          # LoRA fine-tune (GPU recommended)
 python finetune/evaluate.py --adapter finetune/adapter   # rate base vs fine-tuned

@@ -1,0 +1,13 @@
+# Optional extras for the LoRA fine-tuning + rating track (finetune/).
+# Install AFTER the core requirements:
+#     pip install -r requirements.txt
+#     pip install -r requirements-finetune.txt
+#
+# Note: torch and transformers are already installed by the core requirements
+# (sentence-transformers pulls them in for RAG embeddings), so the only genuinely
+# extra packages for this track are the three below. A GPU is strongly
+# recommended; on CPU only a tiny --max-steps smoke run is practical.
+
+peft>=0.12.0
+datasets>=2.20.0
+accelerate>=0.33.0

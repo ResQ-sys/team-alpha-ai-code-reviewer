@@ -1,4 +1,4 @@
-# LoRA fine-tuning & rating
+# LoRA fine-tuning & rating (optional, offline)
 
 Fine-tune a Code-LLM towards **secure-coding recommendations** using
 **LoRA** (Low-Rank Adaptation, via HuggingFace PEFT), then **rate** the base
@@ -6,6 +6,18 @@ model against the fine-tuned adapter.
 
 This is the "train a dedicated model" track from the problem statement, offered
 *alongside* (not instead of) the runtime RAG grounding.
+
+> **This is an offline track, fully decoupled from the app.** Nothing in the
+> reviewer app or pipeline imports this folder, and its heavy dependencies are
+> **not** in the core `requirements.txt`. The running app uses Ollama; you only
+> need this if you want to actually train/rate a model. A **GPU is strongly
+> recommended** — on a CPU box only a tiny `--max-steps` smoke run is practical.
+
+## Install (only for this track)
+
+```bash
+pip install -r requirements-finetune.txt
+```
 
 ## Pipeline
 

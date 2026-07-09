@@ -18,12 +18,9 @@ scikit-learn>=1.4.0     # TF-IDF fallback if sentence-transformers/model downloa
 redis>=5.0.0
 redislite>=6.2.0
 
-# LoRA fine-tuning + rating (finetune/ — optional; GPU recommended)
-torch>=2.2.0
-transformers>=4.44.0
-peft>=0.12.0
-datasets>=2.20.0
-accelerate>=0.33.0
+# NOTE: the optional LoRA fine-tuning track (finetune/) needs a few extra
+# packages (peft, datasets, accelerate) kept OUT of this core install.
+# Only needed if you run finetune/*.py:  pip install -r requirements-finetune.txt
 
 # Web / UI
 fastapi>=0.111.0
