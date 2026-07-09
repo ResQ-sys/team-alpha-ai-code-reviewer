@@ -71,12 +71,20 @@ The default backend is **Ollama** (`LLM_PROVIDER=ollama`), so no API key is
 required. Make sure Ollama is running and the model is pulled:
 
 ```bash
-ollama serve                 # start the local server (if not already running)
-ollama pull llama3.2:1b      # default model (override via OLLAMA_MODEL in .env)
+ollama serve                     # start the local server (if not already running)
+ollama pull qwen2.5-coder:1.5b   # default model (override via OLLAMA_MODEL in .env)
 ```
 
-To use a hosted model instead, set `LLM_PROVIDER=anthropic` (and
-`ANTHROPIC_API_KEY`) or `LLM_PROVIDER=openai` (and `OPENAI_API_KEY`) in `.env`.
+The default model is **Qwen2.5-Coder** — a code-specialised LLM named in the
+problem statement — which outperforms a general model at code review. To use a
+hosted model instead, set `LLM_PROVIDER=anthropic` (and `ANTHROPIC_API_KEY`) or
+`LLM_PROVIDER=openai` (and `OPENAI_API_KEY`) in `.env`.
+
+**Redis cache (optional, zero-setup):** LLM completions are cached so repeat runs
+are instant. If no standalone Redis is reachable at `REDIS_URL`, the pipeline
+automatically spins up an embedded `redislite` server; if that also fails it
+runs without caching. Nothing to install or configure. Toggle with `REDIS_ENABLED`
+or the Streamlit sidebar.
 
 Semgrep needs internet access to pull its hosted rulesets
 (`p/security-audit`, `p/owasp-top-ten`, `p/cwe-top-25`, `p/secrets`). If the
@@ -92,6 +100,8 @@ hashing, insecure deserialization, command injection, `eval`, bare excepts).
 ```bash
 python main.py --repo ./sample_repo
 python main.py --repo ./sample_repo --interactive   # prompts for human approval
+python main.py --repo ./sample_repo --no-rag        # ungrounded (RAG off) baseline
+python main.py --repo ./sample_repo --no-redis      # disable the LLM cache
 ```
 Writes `code_review_report.md` and `code_review_report.json`.
 
@@ -100,11 +110,21 @@ Writes `code_review_report.md` and `code_review_report.json`.
 streamlit run app.py
 ```
 Enter a repo path, run the pipeline, inspect findings/fixes across tabs, and
-approve/reject pending high-risk fixes interactively.
+approve/reject pending high-risk fixes interactively. The sidebar has toggles
+for **secure-coding RAG** and the **Redis cache** (with a live status badge), so
+you can compare grounded vs. ungrounded generation from the UI.
 
 **Tests (no API key required — LLM calls are mocked):**
 ```bash
 python -m tests.test_pipeline
+```
+
+**Optional: LoRA fine-tuning & rating** — train a Code-LLM towards secure-coding
+recommendations and rate it against the base model (see `finetune/README.md`):
+```bash
+python finetune/prepare_data.py                      # build the dataset
+python finetune/train_lora.py --max-steps 5          # LoRA fine-tune (GPU recommended)
+python finetune/evaluate.py --adapter finetune/adapter   # rate base vs fine-tuned
 ```
 
 ## 5. Datasets (for training/fine-tuning a dedicated vulnerability model)

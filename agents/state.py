@@ -38,6 +38,10 @@ class SuggestedFix(TypedDict, total=False):
 
 
 class ReviewState(TypedDict, total=False):
+    # ---- run configuration ----
+    use_rag: bool          # toggle secure-coding RAG retrieval (default True)
+    use_redis: bool        # toggle Redis LLM-response caching (default True)
+
     # ---- ingestion ----
     repo_path: str
     files: List[str]                 # discovered source files

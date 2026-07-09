@@ -22,6 +22,10 @@ def main():
     parser.add_argument("--repo", required=True, help="Path to the repository/codebase to review")
     parser.add_argument("--interactive", action="store_true",
                          help="Prompt on the CLI for human approval of high-risk/unverified fixes")
+    parser.add_argument("--no-rag", action="store_true",
+                         help="Disable secure-coding RAG retrieval (ungrounded fixes)")
+    parser.add_argument("--no-redis", action="store_true",
+                         help="Disable Redis LLM-response caching")
     parser.add_argument("--md-out", default="code_review_report.md")
     parser.add_argument("--json-out", default="code_review_report.json")
     args = parser.parse_args()
@@ -29,10 +33,16 @@ def main():
     if not os.path.isdir(args.repo):
         raise SystemExit(f"Repo path not found: {args.repo}")
 
+    from config import USE_RAG, REDIS_ENABLED
+    from utils.redis_cache import set_enabled
+    set_enabled((not args.no_redis) and REDIS_ENABLED)
+
     app = build_graph()
     state = {
         "repo_path": args.repo,
         "auto_approve": not args.interactive,
+        "use_rag": (not args.no_rag) and USE_RAG,
+        "use_redis": (not args.no_redis) and REDIS_ENABLED,
         "errors": [],
     }
 

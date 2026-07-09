@@ -18,8 +18,30 @@ LOCAL_HF_ENDPOINT = os.getenv("LOCAL_HF_ENDPOINT", "http://localhost:8001/genera
 LOCAL_HF_MODEL_NAME = os.getenv("LOCAL_HF_MODEL_NAME", "deepseek-ai/deepseek-coder-6.7b-instruct")
 
 # Ollama backend (local Code-LLM served via `ollama serve`).
+# Default is Qwen2.5-Coder — a code-specialised model named in the problem
+# statement — which materially outperforms a general 1B model at code review.
 OLLAMA_ENDPOINT = os.getenv("OLLAMA_ENDPOINT", "http://localhost:11434/api/generate")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:1.5b")
+
+# ---------------------------------------------------------------------------
+# Secure-Coding RAG toggle.
+# RAG grounds fix suggestions in retrieved OWASP/CWE guidance. It can be
+# switched off (e.g. from the Streamlit UI) to compare grounded vs. ungrounded
+# generation; when off, the review agent falls back to general best practice.
+# ---------------------------------------------------------------------------
+USE_RAG = os.getenv("USE_RAG", "true").lower() in {"1", "true", "yes", "on"}
+
+# ---------------------------------------------------------------------------
+# Redis caching layer.
+# Caches LLM completions (and can back other caches) so repeat runs are fast
+# and cheap. Falls back to an embedded `redislite` server, then to a no-op,
+# if a standalone Redis isn't reachable — the pipeline never hard-depends on it.
+# ---------------------------------------------------------------------------
+REDIS_ENABLED = os.getenv("REDIS_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_TTL = int(os.getenv("REDIS_TTL", "604800"))          # 7 days
+REDIS_KEY_PREFIX = os.getenv("REDIS_KEY_PREFIX", "aicr")
+REDIS_LITE_PATH = os.getenv("REDIS_LITE_PATH", "/tmp/aicr_redis.db")
 
 # Static analysis
 SEMGREP_RULESETS = [

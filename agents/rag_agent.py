@@ -25,6 +25,16 @@ def _get_kb() -> SecureCodingKB:
 
 
 def rag_node(state: ReviewState) -> ReviewState:
+    # RAG is user-toggleable. When disabled, we skip retrieval entirely and the
+    # review-generation agent falls back to general secure-coding best practice.
+    if not state.get("use_rag", True):
+        errors = list(state.get("errors", []))
+        errors.append(
+            "RAG disabled — fixes generated without retrieved guidance "
+            "(using the model's general secure-coding knowledge)."
+        )
+        return {**state, "retrieved_guidance": {}, "errors": errors}
+
     kb = _get_kb()
     retrieved: Dict[str, List[str]] = {}
 

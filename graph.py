@@ -48,11 +48,19 @@ def build_graph():
     return graph.compile()
 
 
-def run_pipeline(repo_path: str, auto_approve: bool = True) -> ReviewState:
+def run_pipeline(repo_path: str, auto_approve: bool = True,
+                 use_rag: bool = True, use_redis: bool = True) -> ReviewState:
+    from config import USE_RAG, REDIS_ENABLED
+    from utils.redis_cache import set_enabled
+
+    set_enabled(use_redis and REDIS_ENABLED)
+
     app = build_graph()
     initial_state: ReviewState = {
         "repo_path": repo_path,
         "auto_approve": auto_approve,
+        "use_rag": use_rag and USE_RAG,
+        "use_redis": use_redis and REDIS_ENABLED,
         "errors": [],
     }
     result = app.invoke(initial_state)

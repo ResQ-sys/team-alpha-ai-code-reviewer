@@ -11,7 +11,9 @@ import json
 import streamlit as st
 
 from agents.report_agent import report_node
+from config import OLLAMA_MODEL, REDIS_ENABLED, USE_RAG
 from graph import build_graph
+from utils.redis_cache import get_cache, set_enabled
 
 st.set_page_config(page_title="AI Code Reviewer & Secure Dev Agent", layout="wide")
 st.title("🛡️ AI Software Code Reviewer & Secure Development Agent")
@@ -21,15 +23,52 @@ st.caption("Multi-agent pipeline: ingestion → static analysis → Code-LLM rev
 
 with st.sidebar:
     repo_path = st.text_input("Repository path", value="./sample_repo")
+
+    st.markdown("### Pipeline options")
+    use_rag = st.toggle(
+        "Use secure-coding RAG",
+        value=USE_RAG,
+        help="Ground fixes in retrieved OWASP/CWE guidance. Turn off to compare "
+             "ungrounded generation.",
+    )
+    use_redis = st.toggle(
+        "Use Redis cache",
+        value=REDIS_ENABLED,
+        help="Cache LLM responses so repeat runs are instant.",
+    )
+
+    st.caption(f"**Model:** `{OLLAMA_MODEL}`")
+
+    # Live Redis status
+    set_enabled(use_redis)
+    if use_redis:
+        stats = get_cache().stats()
+        if stats["available"]:
+            st.caption(f"🟢 Redis: `{stats['backend']}` — {stats['keys']} keys, "
+                       f"{stats['hits']} hits / {stats['misses']} misses")
+        else:
+            st.caption("🔴 Redis: unavailable (running without cache)")
+    else:
+        st.caption("⚪ Redis: disabled")
+
     run_btn = st.button("Run Review Pipeline", type="primary")
 
 if "result" not in st.session_state:
     st.session_state.result = None
 
 if run_btn:
-    with st.spinner("Running multi-agent review pipeline..."):
+    spinner_msg = "Running multi-agent review pipeline"
+    spinner_msg += " (RAG on)" if use_rag else " (RAG off)"
+    with st.spinner(spinner_msg + "..."):
+        set_enabled(use_redis)
         app = build_graph()
-        state = {"repo_path": repo_path, "auto_approve": True, "errors": []}
+        state = {
+            "repo_path": repo_path,
+            "auto_approve": True,
+            "use_rag": use_rag,
+            "use_redis": use_redis,
+            "errors": [],
+        }
         st.session_state.result = app.invoke(state)
 
 result = st.session_state.result
@@ -40,6 +79,10 @@ if result:
     c2.metric("Confidence Score", result["confidence_score"])
     c3.metric("Findings", len(result.get("merged_findings", [])))
     c4.metric("Pending Approval", len(result.get("requires_approval", [])))
+
+    rag_badge = "🟢 RAG grounded" if result.get("use_rag", True) else "⚪ RAG off (ungrounded)"
+    st.caption(f"{rag_badge}  •  Model: `{OLLAMA_MODEL}`  •  "
+               f"Redis cache: {'on' if result.get('use_redis', True) else 'off'}")
 
     tabs = st.tabs([
         "Vulnerability Report", "Suggested Fixes", "Quality Issues",
